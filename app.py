@@ -5,8 +5,7 @@ import google.generativeai as genai
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # Use a current model
-model = genai.GenerativeModel("models/gemini-3.5-flash")
-
+model = genai.GenerativeModel("models/gemini-flash-lite-latest")
 st.set_page_config(page_title="AI Health Assistant")
 
 st.title("🩺 AI Health Assistant")
