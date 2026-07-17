@@ -127,6 +127,21 @@ Symptoms:
             st.markdown("## 💡 AI Advice")
 
             st.write(response.text)
+             # Create PDF
+pdf_file = create_pdf(symptoms, response.text)
+
+# Read PDF
+with open(pdf_file, "rb") as file:
+    pdf_data = file.read()
+
+# Download button
+st.download_button(
+    label="📄 Download Health Report",
+    data=pdf_data,
+    file_name="Health_Report.pdf",
+    mime="application/pdf"
+)
+
 
             st.info(
                 "⚠ This advice is for educational purposes only. "
@@ -313,21 +328,7 @@ Keep the language simple and suitable for students.
         st.success("Exercise Plan Ready!")
 
         st.write(response.text)
-        # Create PDF
-pdf_file = create_pdf(symptoms, response.text)
-
-# Read PDF
-with open(pdf_file, "rb") as file:
-    pdf_data = file.read()
-
-# Download button
-st.download_button(
-    label="📄 Download Health Report",
-    data=pdf_data,
-    file_name="Health_Report.pdf",
-    mime="application/pdf"
-)
-
+       
         st.info(
             "⚠️ Always exercise safely. Stop if you feel pain or discomfort."
         )
