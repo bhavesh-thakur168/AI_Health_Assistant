@@ -124,6 +124,46 @@ Symptoms:
                 "⚠ This advice is for educational purposes only. "
                 "Always consult a qualified healthcare professional for medical concerns."
             )
+elif selected == "BMI Calculator":
+
+    st.title("📊 BMI Calculator")
+
+    st.write("Calculate your Body Mass Index (BMI).")
+
+    height = st.number_input(
+        "Enter your height (in cm)",
+        min_value=50.0,
+        max_value=250.0,
+        value=170.0
+    )
+
+    weight = st.number_input(
+        "Enter your weight (in kg)",
+        min_value=10.0,
+        max_value=300.0,
+        value=65.0
+    )
+
+    if st.button("Calculate BMI"):
+
+        height_m = height / 100
+        bmi = weight / (height_m * height_m)
+
+        st.subheader(f"Your BMI is: {bmi:.2f}")
+
+        if bmi < 18.5:
+            st.warning("You are Underweight.")
+
+        elif bmi < 25:
+            st.success("You have a Healthy Weight.")
+
+        elif bmi < 30:
+            st.warning("You are Overweight.")
+
+        else:
+            st.error("You are in the Obese category.")
+
+        st.info("⚠️ BMI is a general health indicator and should not be used as the only measure of health.")
 elif selected == "About":
 
     st.title("About Project")
@@ -140,5 +180,4 @@ elif selected == "About":
 
 Bhavesh Thakur
             
-""")
-
+""")        
