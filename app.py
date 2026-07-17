@@ -28,6 +28,7 @@ with st.sidebar:
             "AI Symptom Checker",
             "BMI Calculator",
             "Water Intake",
+            "Diet Planner",
             "About"
         ],
         icons=[
@@ -35,6 +36,7 @@ with st.sidebar:
             "robot",
             "activity",
             "cup-straw",
+            "egg-fried",
             "info-circle"
         ],
         default_index=0,
@@ -194,6 +196,65 @@ elif selected == "Water Intake":
         st.info(
             "This is a general recommendation. Your needs may vary depending on climate, activity level, and health."
         )
+elif selected == "Diet Planner":
+
+    st.title("🍎 AI Diet Planner")
+
+    age = st.number_input(
+        "Age",
+        1,
+        100,
+        18
+    )
+
+    gender = st.selectbox(
+        "Gender",
+        ["Male","Female"]
+    )
+
+    goal = st.selectbox(
+        "Goal",
+        [
+            "Weight Loss",
+            "Weight Gain",
+            "Healthy Lifestyle"
+        ]
+    )
+
+    if st.button("Generate Diet Plan"):
+
+        with st.spinner("Preparing your AI diet plan..."):
+
+            prompt = f"""
+Create a simple one-day Indian diet plan.
+
+Age: {age}
+Gender: {gender}
+Goal: {goal}
+
+Include:
+
+Breakfast
+
+Lunch
+
+Evening Snack
+
+Dinner
+
+Healthy Tips
+
+Keep the language simple.
+"""
+
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
+
+        st.success("Diet Plan Ready")
+
+        st.write(response.text)
 elif selected == "About":
 
     st.title("About Project")
@@ -210,4 +271,4 @@ elif selected == "About":
 
 Bhavesh Thakur
             
-""")        
+""")
