@@ -45,35 +45,41 @@ with st.sidebar:
 # -----------------------------
 if selected == "Home":
 
-    st.title("🩺 HealthMate AI")
+    st.title("🏥 HealthMate AI")
 
     st.subheader("Your Intelligent Health Companion")
 
-    st.write("---")
+    st.markdown("---")
 
-    st.success("Welcome!")
-
-    st.write("""
-This AI Health Assistant can help you with:
-
-✅ General Health Advice
-
-✅ BMI Calculator
-
-✅ Water Intake Calculator
-
-✅ AI Symptom Checker
-
-✅ Healthy Lifestyle Tips
-""")
-
-    st.info(
-        "⚠ This application provides educational information only. "
-        "It does NOT replace a doctor."
+    st.image(
+        "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200",
+        use_container_width=True
     )
 
-# -----------------------------
-# ABOUT
+    st.markdown("## 👋 Welcome")
+
+    st.write("""
+HealthMate AI is designed to provide general health guidance using Artificial Intelligence.
+
+You can use this application to:
+
+• 🤖 Check common symptoms
+
+• 📊 Calculate BMI
+
+• 💧 Calculate daily water intake
+
+• 🍎 Get healthy lifestyle tips
+
+• 🏃 Improve your fitness
+
+This project is developed using Python, Streamlit and Google's Gemini AI.
+""")
+
+    st.warning(
+        "⚠ This application provides educational information only. "
+        "It is NOT a substitute for professional medical advice."
+    )
 # -----------------------------
 elif selected == "AI Symptom Checker":
 
