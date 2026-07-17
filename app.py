@@ -3,7 +3,7 @@ from streamlit_option_menu import option_menu
 from google import genai
 from report import create_pdf
 
-client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+client = genai.Client( api_key=st.secrets["GEMINI_API_KEY"])
 
 # -----------------------------
 # Page Settings
@@ -127,7 +127,7 @@ Symptoms:
             st.markdown("## 💡 AI Advice")
 
             st.write(response.text)
-             # Create PDF
+            # Create PDF
 pdf_file = create_pdf(symptoms, response.text)
 
 # Read PDF
@@ -141,7 +141,6 @@ st.download_button(
     file_name="Health_Report.pdf",
     mime="application/pdf"
 )
-
 
 st.info(
     "⚠ This advice is for educational purposes only. "
@@ -329,10 +328,7 @@ Keep the language simple and suitable for students.
         st.success("Exercise Plan Ready!")
 
         st.write(response.text)
-       
-        st.info(
-            "⚠️ Always exercise safely. Stop if you feel pain or discomfort."
-        )
+        
 elif selected == "About":
 
     st.title("About Project")
@@ -350,8 +346,8 @@ elif selected == "About":
 Bhavesh Thakur
             
 """)
-
-st.markdown("---")
+    
+    st.markdown("---")
 
 st.caption(
     "© 2026 HealthMate AI | Developed by Bhavesh Thakur | Educational Purpose Only"
