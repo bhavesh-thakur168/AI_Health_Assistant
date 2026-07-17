@@ -9,7 +9,7 @@ client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 # -----------------------------
 st.set_page_config(
     page_title="HealthMate AI",
-    page_icon="🩺",
+    page_icon="logo.png",
     layout="wide"
 )
 
@@ -269,3 +269,9 @@ elif selected == "About":
 Bhavesh Thakur
             
 """)
+
+st.markdown("---")
+
+st.caption(
+    "© 2026 HealthMate AI | Developed by Bhavesh Thakur | Educational Purpose Only"
+)
