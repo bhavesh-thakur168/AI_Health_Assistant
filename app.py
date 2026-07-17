@@ -6,7 +6,7 @@ from google import genai
 # Gemini API
 # -----------------------------
 client = genai.Client(
-    api_key=st.secrets["GEMINI_API_KEY]
+    api_key=st.secrets["GEMINI_API_KEY"]
 )
 
 # -----------------------------
