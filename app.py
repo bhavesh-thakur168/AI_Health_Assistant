@@ -164,6 +164,30 @@ elif selected == "BMI Calculator":
             st.error("You are in the Obese category.")
 
         st.info("⚠️ BMI is a general health indicator and should not be used as the only measure of health.")
+elif selected == "Water Intake":
+
+    st.title("💧 Water Intake Calculator")
+
+    st.write("Calculate your recommended daily water intake.")
+
+    weight = st.number_input(
+        "Enter your weight (kg)",
+        min_value=10.0,
+        max_value=250.0,
+        value=60.0
+    )
+
+    if st.button("Calculate Water Intake"):
+
+        water = weight * 35
+
+        litres = water / 1000
+
+        st.success(f"💧 Recommended Water Intake: {litres:.2f} Litres/day")
+
+        st.info(
+            "This is a general recommendation. Your needs may vary depending on climate, activity level, and health."
+        )
 elif selected == "About":
 
     st.title("About Project")
