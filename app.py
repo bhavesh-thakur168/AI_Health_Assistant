@@ -147,6 +147,7 @@ st.info(
     "⚠ This advice is for educational purposes only. "
     "Always consult a qualified healthcare professional for medical concerns."
             )
+
 elif selected == "BMI Calculator":
 
     st.title("📊 BMI Calculator")
