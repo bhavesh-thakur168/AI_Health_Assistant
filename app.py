@@ -130,7 +130,7 @@ elif selected == "About":
 
     st.title("About Project")
 
-   st.write("""
+    st.write("""
 ### Technologies Used
 
 - Python
