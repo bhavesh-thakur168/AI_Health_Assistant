@@ -1,6 +1,7 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from google import genai
+from report import create_pdf
 
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
@@ -312,6 +313,20 @@ Keep the language simple and suitable for students.
         st.success("Exercise Plan Ready!")
 
         st.write(response.text)
+        # Create PDF
+pdf_file = create_pdf(symptoms, response.text)
+
+# Read PDF
+with open(pdf_file, "rb") as file:
+    pdf_data = file.read()
+
+# Download button
+st.download_button(
+    label="📄 Download Health Report",
+    data=pdf_data,
+    file_name="Health_Report.pdf",
+    mime="application/pdf"
+)
 
         st.info(
             "⚠️ Always exercise safely. Stop if you feel pain or discomfort."
