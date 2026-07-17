@@ -26,6 +26,7 @@ with st.sidebar:
             "BMI Calculator",
             "Water Intake",
             "Diet Planner",
+            "Exercise Planner",
             "About"
         ],
         icons=[
@@ -34,6 +35,7 @@ with st.sidebar:
             "activity",
             "cup-straw",
             "egg-fried",
+            "heart-pulse",
             "info-circle"
         ],
         default_index=0,
@@ -252,6 +254,68 @@ Keep the language simple.
         st.success("Diet Plan Ready")
 
         st.write(response.text)
+elif selected == "Exercise Planner":
+
+    st.title("🏃 AI Exercise Planner")
+
+    age = st.number_input(
+        "Age",
+        min_value=5,
+        max_value=100,
+        value=18
+    )
+
+    fitness = st.selectbox(
+        "Fitness Level",
+        [
+            "Beginner",
+            "Intermediate",
+            "Advanced"
+        ]
+    )
+
+    goal = st.selectbox(
+        "Goal",
+        [
+            "Weight Loss",
+            "Muscle Gain",
+            "Stay Fit"
+        ]
+    )
+
+    if st.button("Generate Exercise Plan"):
+
+        with st.spinner("Creating your workout plan..."):
+
+            prompt = f"""
+Create a simple one-day exercise plan.
+
+Age: {age}
+Fitness Level: {fitness}
+Goal: {goal}
+
+Include:
+
+- Warm-up
+- Main Exercises
+- Stretching
+- Safety Tips
+
+Keep the language simple and suitable for students.
+"""
+
+            response = client.models.generate_content(
+                model="gemini-3.1-flash-lite",
+                contents=prompt
+            )
+
+        st.success("Exercise Plan Ready!")
+
+        st.write(response.text)
+
+        st.info(
+            "⚠️ Always exercise safely. Stop if you feel pain or discomfort."
+        )
 elif selected == "About":
 
     st.title("About Project")
