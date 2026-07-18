@@ -81,13 +81,13 @@ This project is developed using Python, Streamlit and Google's Gemini AI.
     col1, col2, col3 = st.columns(3)
 
     with col1:
-    st.metric("🤖 AI Model", "Gemini")
+        st.metric("🤖 AI Model", "Gemini")
 
     with col2:
-    st.metric("🩺 Features", "6")
+        st.metric("🩺 Features", "6")
 
     with col3:
-    st.metric("📄 Reports", "PDF")
+        st.metric("📄 Reports", "PDF")
 
 
     st.warning(
