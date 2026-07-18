@@ -147,7 +147,7 @@ st.info(
     "Always consult a qualified healthcare professional for medical concerns."
             )
 
-elif selected == "BMI Calculator":
+    elif selected == "BMI Calculator":
 
     st.title("📊 BMI Calculator")
 
