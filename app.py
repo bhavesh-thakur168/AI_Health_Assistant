@@ -77,7 +77,17 @@ You can use this application to:
 
 This project is developed using Python, Streamlit and Google's Gemini AI.
 """)
+col1, col2, col3 = st.columns(3)
 
+with col1:
+    st.metric("🤖 AI Model", "Gemini")
+
+with col2:
+    st.metric("🩺 Features", "6")
+
+with col3:
+    st.metric("📄 Reports", "PDF")
+    
     st.warning(
         "⚠ This application provides educational information only. "
         "It is NOT a substitute for professional medical advice."
@@ -349,4 +359,16 @@ Bhavesh Thakur
 
 st.caption(
     "© 2026 HealthMate AI | Developed by Bhavesh Thakur | Educational Purpose Only"
+)
+
+st.markdown("---")
+
+st.markdown(
+    """
+    <div style='text-align:center'>
+        ❤️ Developed by <b>Bhavesh Thakur</b><br>
+        HealthMate AI • Powered by Google Gemini
+    </div>
+    """,
+    unsafe_allow_html=True
 )
