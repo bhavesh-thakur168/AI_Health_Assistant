@@ -125,26 +125,26 @@ Symptoms:
             st.success("Analysis Complete")
 
             st.markdown("## 💡 AI Advice")
-
             st.write(response.text)
+
             # Create PDF
-pdf_file = create_pdf(symptoms, response.text)
+            pdf_file = create_pdf(symptoms, response.text)
 
-# Read PDF
-with open(pdf_file, "rb") as file:
-    pdf_data = file.read()
+            # Read PDF
+            with open(pdf_file, "rb") as file:
+                pdf_data = file.read()
 
-# Download button
-st.download_button(
-    label="📄 Download Health Report",
-    data=pdf_data,
-    file_name="Health_Report.pdf",
-    mime="application/pdf"
-)
+            # Download button
+            st.download_button(
+                label="📄 Download Health Report",
+                data=pdf_data,
+                file_name="Health_Report.pdf",
+                mime="application/pdf"
+            )
 
-st.info(
-    "⚠ This advice is for educational purposes only. "
-    "Always consult a qualified healthcare professional for medical concerns."
+            st.info(
+                "⚠ This advice is for educational purposes only. "
+                "Always consult a qualified healthcare professional for medical concerns."
             )
 elif  selected == "BMI Calculator":
     st.title("📊 BMI Calculator")
