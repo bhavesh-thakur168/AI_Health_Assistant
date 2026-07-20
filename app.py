@@ -24,6 +24,7 @@ with st.sidebar:
         [
             "Home",
             "AI Symptom Checker",
+            "Medicine Info",
             "BMI Calculator",
             "Water Intake",
             "Diet Planner",
@@ -33,6 +34,7 @@ with st.sidebar:
         icons=[
             "house",
             "robot",
+            "capsule",
             "activity",
             "cup-straw",
             "egg-fried",
@@ -157,6 +159,57 @@ Symptoms:
             st.info(
                 "⚠ This advice is for educational purposes only. "
                 "Always consult a qualified healthcare professional for medical concerns."
+            )
+elif selected == "Medicine Info":
+
+    st.title("💊 AI Medicine Information")
+
+    medicine = st.text_input(
+        "Enter Medicine Name",
+        placeholder="Example: Paracetamol"
+    )
+
+    if st.button("Get Medicine Information"):
+
+        if medicine.strip() == "":
+            st.warning("Please enter a medicine name.")
+
+        else:
+
+            with st.spinner("Searching..."):
+
+                prompt = f"""
+Provide general educational information about this medicine.
+
+Medicine:
+{medicine}
+
+Include:
+
+• What it is used for
+
+• Common side effects
+
+• Precautions
+
+• When to consult a doctor
+
+Keep the language simple.
+
+Do NOT prescribe medicines.
+"""
+
+                response = client.models.generate_content(
+                    model="gemini-3.1-flash-lite",
+                    contents=prompt
+                )
+
+            st.success("Information Ready")
+
+            st.write(response.text)
+
+            st.info(
+                "⚠ Always consult a doctor before taking any medicine."
             )
 elif  selected == "BMI Calculator":
     st.title("📊 BMI Calculator")
