@@ -3,8 +3,6 @@ from streamlit_option_menu import option_menu
 from google import genai
 from report import create_pdf
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
 
 client = genai.Client( api_key=st.secrets["GEMINI_API_KEY"])
 
@@ -20,62 +18,25 @@ st.set_page_config(
 # -----------------------------
 # Sidebar
 # -----------------------------
-
-if not st.session_state.logged_in:
-
-    st.title("🏥 HealthMate AI")
-
-    st.subheader("Secure Login")
-
-    username = st.text_input("Username")
-
-    password = st.text_input("Password", type="password")
-
-    if st.button("Login"):
-
-        if username == "admin" and password == "1234":
-
-            st.session_state.logged_in = True
-            st.rerun()
-
-        else:
-            st.error("Invalid Username or Password")
-
-    st.stop()
-
 with st.sidebar:
 
     selected = option_menu(
         "HealthMate AI",
         [
             "Home",
-            "Health Dashboard",
             "AI Symptom Checker",
             "Medicine Info",
             "BMI Calculator",
             "Water Intake",
             "Diet Planner",
-            "Exercise Planner",
             "Calorie Calculator",
             "Sleep Recommendation",
+            "Health Dashboard",
             "About"
         ],
-        icons=[
-            "house",
-            "speedometer2",
-            "robot",
-            "capsule",
-            "activity",
-            "cup-straw",
-            "egg-fried",
-            "heart-pulse",
-            "fire",
-            "moon-stars",
-            "info-circle"
-        ],
-        default_index=0,
+        icons=[...],
+        default_index=0
     )
-
 # -----------------------------
 # HOME
 # -----------------------------
@@ -178,12 +139,16 @@ elif selected == "AI Symptom Checker":
 
     st.write("Describe your symptoms below.")
 
-    symptoms = st.text_area(
+    with st.form("symptom_form"):
+
+     symptoms = st.text_area(
         "Symptoms",
         placeholder="Example: I have a headache, fever and sore throat."
     )
 
-    if st.button("🔍 Analyze Symptoms"):
+    submitted = st.form_submit_button("🔍 Analyze Symptoms")
+
+if submitted:
 
         if symptoms.strip() == "":
             st.warning("Please enter your symptoms.")
