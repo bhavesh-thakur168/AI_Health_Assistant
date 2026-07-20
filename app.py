@@ -146,16 +146,16 @@ elif selected == "Health Dashboard":
 elif selected == "AI Symptom Checker":
 
     st.title("🤖 AI Symptom Checker")
-
     st.write("Describe your symptoms below.")
 
     with st.form("symptom_form"):
+
         symptoms = st.text_area(
             "Symptoms",
             placeholder="Example: I have a headache, fever and sore throat."
-    )
+        )
 
-    submitted = st.form_submit_button("🔍 Analyze Symptoms")
+        submitted = st.form_submit_button("🔍 Analyze Symptoms")
 
     if submitted:
 
@@ -163,18 +163,10 @@ elif selected == "AI Symptom Checker":
             st.warning("Please enter your symptoms.")
 
         else:
-
             with st.spinner("Analyzing your symptoms..."):
 
                 prompt = f"""
 You are an AI Health Assistant.
-
-Rules:
-- Give only general health advice.
-- Never diagnose diseases.
-- Suggest simple home care when appropriate.
-- Tell users to consult a doctor if symptoms are severe.
-- Keep the answer easy to understand.
 
 Symptoms:
 {symptoms}
@@ -186,10 +178,7 @@ Symptoms:
                 )
 
             st.success("Analysis Complete")
-
-            st.markdown("## 💡 AI Advice")
             st.write(response.text)
-
             # Create PDF
             pdf_file = create_pdf(symptoms, response.text)
 
