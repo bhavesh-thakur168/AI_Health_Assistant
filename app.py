@@ -148,16 +148,9 @@ elif selected == "AI Symptom Checker":
     st.title("🤖 AI Symptom Checker")
     st.write("Describe your symptoms below.")
 
-    with st.form("symptom_form"):
+    symptoms = st.chat_input("Describe your symptoms...")
 
-        symptoms = st.text_area(
-            "Symptoms",
-            placeholder="Example: I have a headache, fever and sore throat."
-        )
-
-        submitted = st.form_submit_button("🔍 Analyze Symptoms")
-
-    if submitted:
+    if symptoms:
 
         if symptoms.strip() == "":
             st.warning("Please enter your symptoms.")
@@ -179,6 +172,7 @@ Symptoms:
 
             st.success("Analysis Complete")
             st.write(response.text)
+
             # Create PDF
             pdf_file = create_pdf(symptoms, response.text)
 
