@@ -33,7 +33,18 @@ with st.sidebar:
             "Health Dashboard",
             "About"
         ],
-        icons=[...],
+        icons=[
+             "house",
+             "robot",
+             "capsule",
+             "activity",
+             "cup-straw",
+             "egg-fried",
+             "fire",
+             "moon-stars",
+             "speedometer2",
+             "info-circle"         
+],
         default_index=0
     )
 # -----------------------------
@@ -139,10 +150,9 @@ elif selected == "AI Symptom Checker":
     st.write("Describe your symptoms below.")
 
     with st.form("symptom_form"):
-
-     symptoms = st.text_area(
-        "Symptoms",
-        placeholder="Example: I have a headache, fever and sore throat."
+        symptoms = st.text_area(
+            "Symptoms",
+            placeholder="Example: I have a headache, fever and sore throat."
     )
 
     submitted = st.form_submit_button("🔍 Analyze Symptoms")
