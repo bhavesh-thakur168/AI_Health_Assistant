@@ -151,6 +151,8 @@ elif selected == "AI Symptom Checker":
     symptoms = st.chat_input("Describe your symptoms...")
 
     if symptoms:
+        with st.chat_message("user"):
+            st.write(symptoms)
 
         if symptoms.strip() == "":
             st.warning("Please enter your symptoms.")
@@ -170,8 +172,8 @@ Symptoms:
                     contents=prompt
                 )
 
-            st.success("Analysis Complete")
-            st.write(response.text)
+            with st.chat_message("assistant"):
+                 st.write(response.text)
 
             # Create PDF
             pdf_file = create_pdf(symptoms, response.text)
