@@ -157,7 +157,7 @@ elif selected == "AI Symptom Checker":
 
     submitted = st.form_submit_button("🔍 Analyze Symptoms")
 
-if submitted:
+    if submitted:
 
         if symptoms.strip() == "":
             st.warning("Please enter your symptoms.")
