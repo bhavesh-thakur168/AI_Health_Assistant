@@ -19,7 +19,6 @@ st.set_page_config(
 # Sidebar
 # -----------------------------
 with st.sidebar:
-
     selected = option_menu(
         "HealthMate AI",
         [
