@@ -30,6 +30,7 @@ with st.sidebar:
             "Diet Planner",
             "Calorie Calculator",
             "Sleep Recommendation",
+            "Medical Report Analyzer",
             "Health Dashboard",
             "About"
         ],
@@ -42,6 +43,7 @@ with st.sidebar:
              "egg-fried",
              "fire",
              "moon-stars",
+             "file-earmark-medical",
              "speedometer2",
              "info-circle"         
 ],
