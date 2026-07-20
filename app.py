@@ -1,3 +1,4 @@
+
 import streamlit as st
 from streamlit_option_menu import option_menu
 from google import genai
@@ -23,6 +24,7 @@ with st.sidebar:
         "HealthMate AI",
         [
             "Home",
+            "Health Dashboard",
             "AI Symptom Checker",
             "Medicine Info",
             "BMI Calculator",
@@ -35,6 +37,7 @@ with st.sidebar:
         ],
         icons=[
             "house",
+            "speedometer2",
             "robot",
             "capsule",
             "activity",
@@ -100,6 +103,49 @@ This project is developed using Python, Streamlit and Google's Gemini AI.
         "⚠ This application provides educational information only. "
         "It is NOT a substitute for professional medical advice."
     )
+
+elif selected == "Health Dashboard":
+
+    st.title("📊 Health Dashboard")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric("🤖 AI Features", "8")
+
+    with col2:
+        st.metric("📄 PDF Reports", "Available")
+
+    st.markdown("---")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.success("✅ BMI Calculator")
+
+    with col2:
+        st.success("💧 Water Intake")
+
+    with col3:
+        st.success("🍎 Diet Planner")
+
+    col4, col5, col6 = st.columns(3)
+
+    with col4:
+        st.success("🤖 Symptom Checker")
+
+    with col5:
+        st.success("💊 Medicine Info")
+
+    with col6:
+        st.success("🔥 Calories")
+
+    st.markdown("---")
+
+    st.info(
+        "HealthMate AI combines multiple AI-powered wellness tools in one application."
+    )
+    
 # -----------------------------
 elif selected == "AI Symptom Checker":
 
@@ -447,7 +493,7 @@ Keep the answer simple.
             st.write(response.text)
 
             st.info("⚠ This is an AI estimate and may not be completely accurate.")
-            
+
 elif selected == "Sleep Recommendation":
 
     st.title("😴 AI Sleep Recommendation")
