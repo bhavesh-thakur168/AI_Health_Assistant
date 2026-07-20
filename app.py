@@ -12,7 +12,7 @@ client = genai.Client( api_key=st.secrets["GEMINI_API_KEY"])
 st.set_page_config(
     page_title="HealthMate AI",
     page_icon="logo.png",
-    layout="wide"
+    layout="centered"
 )
 
 # -----------------------------
