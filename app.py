@@ -30,6 +30,7 @@ with st.sidebar:
             "Diet Planner",
             "Exercise Planner",
             "Calorie Calculator",
+            "Sleep Recommendation",
             "About"
         ],
         icons=[
@@ -41,6 +42,7 @@ with st.sidebar:
             "egg-fried",
             "heart-pulse",
             "fire",
+            "moon-stars",
             "info-circle"
         ],
         default_index=0,
@@ -393,7 +395,7 @@ Keep the language simple and suitable for students.
         st.success("Exercise Plan Ready!")
 
         st.write(response.text)
-        
+
 elif selected == "Calorie Calculator":
 
     st.title("🔥 AI Calorie Calculator")
@@ -445,6 +447,67 @@ Keep the answer simple.
             st.write(response.text)
 
             st.info("⚠ This is an AI estimate and may not be completely accurate.")
+            
+elif selected == "Sleep Recommendation":
+
+    st.title("😴 AI Sleep Recommendation")
+
+    age = st.number_input(
+        "Your Age",
+        min_value=1,
+        max_value=100,
+        value=18
+    )
+
+    sleep_hours = st.slider(
+        "How many hours do you sleep each night?",
+        1,
+        12,
+        7
+    )
+
+    lifestyle = st.selectbox(
+        "Lifestyle",
+        [
+            "Student",
+            "Working Professional",
+            "Athlete",
+            "Senior Citizen"
+        ]
+    )
+
+    if st.button("Get Sleep Advice"):
+
+        with st.spinner("Analyzing your sleep..."):
+
+            prompt = f"""
+Provide simple sleep recommendations.
+
+Age: {age}
+Sleep Hours: {sleep_hours}
+Lifestyle: {lifestyle}
+
+Include:
+- Is the sleep duration adequate?
+- Tips to improve sleep quality.
+- Healthy bedtime habits.
+- When to consult a doctor.
+
+Keep the language simple.
+"""
+
+            response = client.models.generate_content(
+                model="gemini-3.1-flash-lite",
+                contents=prompt
+            )
+
+        st.success("Sleep Advice Ready")
+
+        st.write(response.text)
+
+        st.info(
+            "⚠️ These are general wellness suggestions and are not a medical diagnosis."
+        )
 
 elif selected == "About":
 
