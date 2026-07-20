@@ -29,6 +29,7 @@ with st.sidebar:
             "Water Intake",
             "Diet Planner",
             "Exercise Planner",
+            "Calorie Calculator",
             "About"
         ],
         icons=[
@@ -39,6 +40,7 @@ with st.sidebar:
             "cup-straw",
             "egg-fried",
             "heart-pulse",
+            "fire",
             "info-circle"
         ],
         default_index=0,
@@ -392,6 +394,58 @@ Keep the language simple and suitable for students.
 
         st.write(response.text)
         
+elif selected == "Calorie Calculator":
+
+    st.title("🔥 AI Calorie Calculator")
+
+    food = st.text_area(
+        "What did you eat today?",
+        placeholder="Example: 2 chapati, dal, rice, salad and milk"
+    )
+
+    if st.button("Calculate Calories"):
+
+        if food.strip() == "":
+            st.warning("Please enter your food items.")
+
+        else:
+
+            with st.spinner("Calculating calories..."):
+
+                prompt = f"""
+Estimate the calories for the following food.
+
+Food:
+{food}
+
+Include:
+
+• Estimated total calories
+
+• Protein
+
+• Carbohydrates
+
+• Fat
+
+• Whether the meal is healthy
+
+• Suggestions to improve it
+
+Keep the answer simple.
+"""
+
+                response = client.models.generate_content(
+                    model="gemini-3.1-flash-lite",
+                    contents=prompt
+                )
+
+            st.success("Calories Estimated")
+
+            st.write(response.text)
+
+            st.info("⚠ This is an AI estimate and may not be completely accurate.")
+
 elif selected == "About":
 
     st.title("About Project")
