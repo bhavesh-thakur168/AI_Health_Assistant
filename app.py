@@ -28,6 +28,7 @@ with st.sidebar:
             "BMI Calculator",
             "Water Intake",
             "Diet Planner",
+            "Exercise Planner", 
             "Calorie Calculator",
             "Sleep Recommendation",
             "Medical Report Analyzer",
@@ -41,6 +42,7 @@ with st.sidebar:
              "activity",
              "cup-straw",
              "egg-fried",
+             "person-running",
              "fire",
              "moon-stars",
              "file-earmark-medical",
@@ -540,7 +542,47 @@ Keep the language simple.
         st.info(
             "⚠️ These are general wellness suggestions and are not a medical diagnosis."
         )
+elif selected == "Medical Report Analyzer":
 
+    st.title("📷 Medical Report Analyzer")
+
+    st.write(
+        "Upload a medical report, X-ray, skin image, or blood test report for a general AI explanation."
+    )
+
+    uploaded_file = st.file_uploader(
+        "Choose an image",
+        type=["png", "jpg", "jpeg"]
+    )
+
+    if uploaded_file is not None:
+
+        st.image(uploaded_file, caption="Uploaded Image", use_container_width=True)
+
+        if st.button("🔍 Analyze Image"):
+
+            with st.spinner("Analyzing image..."):
+
+                image_bytes = uploaded_file.getvalue()
+
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[
+                        "Explain this medical image in simple language. Do not diagnose. Suggest consulting a doctor if necessary.",
+                        {
+                            "mime_type": uploaded_file.type,
+                            "data": image_bytes,
+                        },
+                    ],
+                )
+
+            st.success("Analysis Complete")
+
+            st.write(response.text)
+
+            st.info(
+                "⚠ This explanation is for educational purposes only and is not a medical diagnosis."
+            )
 elif selected == "About":
 
     st.title("About Project")
