@@ -544,17 +544,8 @@ if page == "Home":
         "AI HEALTH PLATFORM",
     )
 
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        card("🤖", "AI Engine", "Gemini", "AI assistance")
-    with c2:
-        card("🧰", "Tools", "12+", "Health utilities")
-    with c3:
-        card("📄", "Reports", "PDF", "Downloadable reports")
-    with c4:
-        card("⚡", "Mode", "FAST", "Lightweight interface")
-
-    st.markdown("<br>### Explore HealthMate", unsafe_allow_html=True)
+    # 1. TOP SECTION: Explore Features (Formerly in Green Outline)
+    st.markdown("### Explore HealthMate", unsafe_allow_html=True)
 
     r1 = st.columns(3)
     with r1[0]:
@@ -603,6 +594,20 @@ if page == "Home":
             "Generate a simple Indian diet plan.",
             target_page="Diet Planner",
         )
+
+    st.markdown("<br><br>", unsafe_allow_html=True)
+
+    # 2. BOTTOM SECTION: System Metrics & Status (Formerly in Red Outline)
+    st.markdown("### System Status", unsafe_allow_html=True)
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        card("🤖", "AI Engine", "Gemini", "AI assistance")
+    with c2:
+        card("🧰", "Tools", "12+", "Health utilities")
+    with c3:
+        card("📄", "Reports", "PDF", "Downloadable reports")
+    with c4:
+        card("⚡", "Mode", "FAST", "Lightweight interface")
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.info(
