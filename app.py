@@ -524,8 +524,9 @@ if page == "Home":
         "AI HEALTH PLATFORM",
     )
 
-    st.markdown("### Explore HealthMate", unsafe_allow_html=True)
+    st.markdown("### Explore HealthMate Features", unsafe_allow_html=True)
 
+    # Row 1
     r1 = st.columns(3)
     with r1[0]:
         tool(
@@ -551,6 +552,7 @@ if page == "Home":
 
     st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
 
+    # Row 2
     r2 = st.columns(3)
     with r2[0]:
         tool(
@@ -572,6 +574,51 @@ if page == "Home":
             "Diet Planner",
             "Generate a simple Indian diet plan.",
             target_page="Diet Planner",
+        )
+
+    st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
+
+    # Row 3
+    r3 = st.columns(3)
+    with r3[0]:
+        tool(
+            "🏃",
+            "Exercise Planner",
+            "Generate simple workout plans tailored to goals.",
+            target_page="Exercise Planner",
+        )
+    with r3[1]:
+        tool(
+            "🔥",
+            "Calorie Calculator",
+            "Estimate calories and macros from meal descriptions.",
+            target_page="Calorie Calculator",
+        )
+    with r3[2]:
+        tool(
+            "😴",
+            "Sleep Recommendation",
+            "Get personalized guidance for healthy sleep habits.",
+            target_page="Sleep Recommendation",
+        )
+
+    st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
+
+    # Row 4
+    r4 = st.columns(3)
+    with r4[0]:
+        tool(
+            "📷",
+            "Medical Report Analyzer",
+            "Upload image reports for educational AI breakdown.",
+            target_page="Medical Report Analyzer",
+        )
+    with r4[1]:
+        tool(
+            "🧠",
+            "AI Command Center",
+            "Ask general health & wellness questions in interactive chat.",
+            target_page="AI Command Center",
         )
 
     st.markdown("<br><br>", unsafe_allow_html=True)
