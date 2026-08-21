@@ -9,7 +9,7 @@ from report import create_pdf
 client = genai.Client( api_key=st.secrets["GEMINI_API_KEY"])
 
 
-Page Settings
+
 
 
 st.set_page_config(
