@@ -8,11 +8,9 @@ from report import create_pdf
 
 client = genai.Client( api_key=st.secrets["GEMINI_API_KEY"])
 
------------------------------
 
 Page Settings
 
------------------------------
 
 st.set_page_config(
 
@@ -24,11 +22,10 @@ layout="centered"
 
 )
 
------------------------------
 
 Sidebar
 
------------------------------
+
 
 with st.sidebar:
 
@@ -96,11 +93,9 @@ default_index=0
 
 )
 
------------------------------
+
 
 HOME
-
------------------------------
 
 if selected == "Home":
 
@@ -262,7 +257,7 @@ st.info(
 
 )
 
------------------------------
+------
 
 elif selected == "AI Symptom Checker":
 
