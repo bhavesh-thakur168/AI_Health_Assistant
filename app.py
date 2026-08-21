@@ -30,7 +30,6 @@ session_defaults = {
     "bmi": None,
     "water": None,
     "sleep": None,
-    "theme": "Dark",
     "accent": "Cyan",
 }
 
@@ -88,24 +87,15 @@ accent_colors = {
 
 accent = accent_colors.get(st.session_state.accent, "#00f2fe")
 
-if st.session_state.theme == "Dark":
-    background = "#070a11"
-    surface = "rgba(17, 24, 39, 0.75)"
-    surface2 = "rgba(31, 41, 55, 0.6)"
-    text = "#f9fafb"
-    muted = "#9ca3af"
-    border = "rgba(255, 255, 255, 0.1)"
-    card_shadow = "0 8px 32px 0 rgba(0, 0, 0, 0.45)"
-    glass_blur = "blur(12px)"
-else:
-    background = "#f1f5f9"
-    surface = "rgba(255, 255, 255, 0.85)"
-    surface2 = "rgba(241, 245, 249, 0.9)"
-    text = "#0f172a"
-    muted = "#64748b"
-    border = "rgba(0, 0, 0, 0.08)"
-    card_shadow = "0 4px 20px 0 rgba(0, 0, 0, 0.06)"
-    glass_blur = "blur(8px)"
+# Dark Theme Defaults
+background = "#070a11"
+surface = "rgba(17, 24, 39, 0.75)"
+surface2 = "rgba(31, 41, 55, 0.6)"
+text = "#f9fafb"
+muted = "#9ca3af"
+border = "rgba(255, 255, 255, 0.1)"
+card_shadow = "0 8px 32px 0 rgba(0, 0, 0, 0.45)"
+glass_blur = "blur(12px)"
 
 
 # =========================================================
@@ -978,7 +968,7 @@ Keep the language simple.
 
 
 # =========================================================
-# PAGE: MEDICAL REPORT ANALYZER (FIXED WITH RETRY & NEW MODEL)
+# PAGE: MEDICAL REPORT ANALYZER
 # =========================================================
 elif page == "Medical Report Analyzer":
     hero(
@@ -1183,23 +1173,13 @@ elif page == "Settings":
         "SYSTEM SETTINGS",
     )
 
-    theme = st.selectbox(
-        "Theme",
-        ["Dark", "Light"],
-        index=0 if st.session_state.theme == "Dark" else 1,
-    )
-
     accent_choice = st.selectbox(
         "Accent Color",
         list(accent_colors.keys()),
         index=list(accent_colors.keys()).index(st.session_state.accent),
     )
 
-    if (
-        theme != st.session_state.theme
-        or accent_choice != st.session_state.accent
-    ):
-        st.session_state.theme = theme
+    if accent_choice != st.session_state.accent:
         st.session_state.accent = accent_choice
         st.rerun()
 
