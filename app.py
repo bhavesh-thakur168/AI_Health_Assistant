@@ -1,5 +1,6 @@
 import streamlit as st
 from google import genai
+from google.genai import types
 
 # PDF Generator Import
 try:
@@ -544,7 +545,6 @@ if page == "Home":
         "AI HEALTH PLATFORM",
     )
 
-    # 1. TOP SECTION: Explore Features (Formerly in Green Outline)
     st.markdown("### Explore HealthMate", unsafe_allow_html=True)
 
     r1 = st.columns(3)
@@ -597,7 +597,6 @@ if page == "Home":
 
     st.markdown("<br><br>", unsafe_allow_html=True)
 
-    # 2. BOTTOM SECTION: System Metrics & Status (Formerly in Red Outline)
     st.markdown("### System Status", unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -990,7 +989,7 @@ Keep the language simple.
 
 
 # =========================================================
-# PAGE: MEDICAL REPORT ANALYZER
+# PAGE: MEDICAL REPORT ANALYZER (FIXED)
 # =========================================================
 elif page == "Medical Report Analyzer":
     hero(
@@ -1021,6 +1020,12 @@ elif page == "Medical Report Analyzer":
             else:
                 with st.spinner("Analyzing image..."):
                     try:
+                        # Construct proper byte Part payload for the new google-genai SDK
+                        image_part = types.Part.from_bytes(
+                            data=uploaded_file.getvalue(),
+                            mime_type=uploaded_file.type,
+                        )
+
                         response = client.models.generate_content(
                             model="gemini-2.5-flash",
                             contents=[
@@ -1032,10 +1037,7 @@ Do not prescribe treatment.
 Describe only general information that can reasonably be explained from the image.
 Recommend professional medical review when appropriate.
 """,
-                                {
-                                    "mime_type": uploaded_file.type,
-                                    "data": uploaded_file.getvalue(),
-                                },
+                                image_part,
                             ],
                         )
 
