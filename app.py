@@ -263,16 +263,15 @@ h1, h2, h3, h4, h5, h6 {{
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     border: 1px solid var(--border);
-    border-radius: 20px;
+    border-radius: 20px 20px 0 0;
     padding: 22px;
-    min-height: 135px;
+    min-height: 120px;
     box-shadow: var(--shadow);
     transition: transform 0.25s ease, border-color 0.25s ease;
 }}
 
-.tool:hover {{
-    transform: translateY(-4px);
-    border-color: var(--accent);
+.tool-static {{
+    border-radius: 20px !important;
 }}
 
 .tool b {{
@@ -347,6 +346,15 @@ h1, h2, h3, h4, h5, h6 {{
     transform: translateY(-2px);
 }}
 
+/* Feature Navigation Buttons styling */
+div[data-testid="stColumn"] .stButton > button {{
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    margin-top: -1px;
+}}
+
 /* Footer */
 .footer {{
     text-align: center;
@@ -393,10 +401,12 @@ def card(icon, label, value, desc=""):
     )
 
 
-def tool(icon, title, description):
+def tool(icon, title, description, target_page=None):
+    """Interactive tool card that navigates directly on click if target_page is provided."""
+    extra_class = "" if target_page else "tool-static"
     st.markdown(
         f"""
-        <div class="tool">
+        <div class="tool {extra_class}">
             <div style="font-size:30px;">{icon}</div>
             <div><b>{title}</b></div>
             <p>{description}</p>
@@ -404,6 +414,14 @@ def tool(icon, title, description):
         """,
         unsafe_allow_html=True,
     )
+    if target_page:
+        if st.button(
+            f"Open {title} →",
+            key=f"nav_btn_{target_page}",
+            use_container_width=True,
+        ):
+            st.session_state.page = target_page
+            st.rerun()
 
 
 def show_result(text):
@@ -540,21 +558,51 @@ if page == "Home":
 
     r1 = st.columns(3)
     with r1[0]:
-        tool("🤖", "AI Symptom Checker", "Describe symptoms for general educational guidance.")
+        tool(
+            "🤖",
+            "AI Symptom Checker",
+            "Describe symptoms for general educational guidance.",
+            target_page="AI Symptom Checker",
+        )
     with r1[1]:
-        tool("💊", "Medicine Info", "Learn general information about medicines.")
+        tool(
+            "💊",
+            "Medicine Info",
+            "Learn general information about medicines.",
+            target_page="Medicine Info",
+        )
     with r1[2]:
-        tool("📊", "Health Dashboard", "See values calculated during this session.")
+        tool(
+            "📊",
+            "Health Dashboard",
+            "See values calculated during this session.",
+            target_page="Health Dashboard",
+        )
 
     st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
 
     r2 = st.columns(3)
     with r2[0]:
-        tool("⚖️", "BMI Calculator", "Calculate BMI from height and weight.")
+        tool(
+            "⚖️",
+            "BMI Calculator",
+            "Calculate BMI from height and weight.",
+            target_page="BMI Calculator",
+        )
     with r2[1]:
-        tool("💧", "Water Intake", "Estimate general daily water needs.")
+        tool(
+            "💧",
+            "Water Intake",
+            "Estimate general daily water needs.",
+            target_page="Water Intake",
+        )
     with r2[2]:
-        tool("🍎", "Diet Planner", "Generate a simple Indian diet plan.")
+        tool(
+            "🍎",
+            "Diet Planner",
+            "Generate a simple Indian diet plan.",
+            target_page="Diet Planner",
+        )
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.info(
