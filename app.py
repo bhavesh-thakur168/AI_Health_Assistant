@@ -1,3 +1,4 @@
+import time
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -108,7 +109,7 @@ else:
 
 
 # =========================================================
-# ULTRA-MODERN STYLESHEET
+# STYLESHEET
 # =========================================================
 st.markdown(
     f"""
@@ -125,14 +126,12 @@ st.markdown(
     --blur: {glass_blur};
 }}
 
-/* Main Application Layout */
 .stApp {{
     background-color: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
 }}
 
-/* Sidebar Custom Styling */
 [data-testid="stSidebar"] {{
     background-color: var(--surface);
     backdrop-filter: var(--blur);
@@ -154,14 +153,12 @@ st.markdown(
     transform: translateX(4px);
 }}
 
-/* Dynamic Headings */
 h1, h2, h3, h4, h5, h6 {{
     color: var(--text) !important;
     font-weight: 700 !important;
     letter-spacing: -0.025em;
 }}
 
-/* Glassmorphic Hero Banner */
 .hero {{
     padding: 36px;
     border: 1px solid var(--border);
@@ -209,7 +206,6 @@ h1, h2, h3, h4, h5, h6 {{
     line-height: 1.6;
 }}
 
-/* Dashboard Cards */
 .card {{
     background: var(--surface);
     backdrop-filter: var(--blur);
@@ -258,7 +254,6 @@ h1, h2, h3, h4, h5, h6 {{
     margin-top: 4px;
 }}
 
-/* Interactive Tool Cards */
 .tool {{
     background: var(--surface);
     backdrop-filter: var(--blur);
@@ -290,7 +285,6 @@ h1, h2, h3, h4, h5, h6 {{
     margin-bottom: 0;
 }}
 
-/* System Status Indicator */
 .status {{
     display: inline-flex;
     gap: 8px;
@@ -313,7 +307,6 @@ h1, h2, h3, h4, h5, h6 {{
     box-shadow: 0 0 10px var(--accent);
 }}
 
-/* Output Result Box */
 .result {{
     background: var(--surface);
     backdrop-filter: var(--blur);
@@ -327,7 +320,6 @@ h1, h2, h3, h4, h5, h6 {{
     line-height: 1.7;
 }}
 
-/* Custom Interactive Buttons */
 .stButton > button {{
     border-radius: 12px;
     border: 1px solid var(--border);
@@ -347,7 +339,6 @@ h1, h2, h3, h4, h5, h6 {{
     transform: translateY(-2px);
 }}
 
-/* Feature Navigation Buttons styling */
 div[data-testid="stColumn"] .stButton > button {{
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
@@ -356,7 +347,6 @@ div[data-testid="stColumn"] .stButton > button {{
     margin-top: -1px;
 }}
 
-/* Footer */
 .footer {{
     text-align: center;
     color: var(--muted);
@@ -403,7 +393,6 @@ def card(icon, label, value, desc=""):
 
 
 def tool(icon, title, description, target_page=None):
-    """Interactive tool card that navigates directly on click if target_page is provided."""
     extra_class = "" if target_page else "tool-static"
     st.markdown(
         f"""
@@ -987,8 +976,9 @@ Keep the language simple.
 
         st.info("⚠️ These are general wellness suggestions, not a medical diagnosis.")
 
+
 # =========================================================
-# PAGE: MEDICAL REPORT ANALYZER
+# PAGE: MEDICAL REPORT ANALYZER (FIXED WITH RETRY & NEW MODEL)
 # =========================================================
 elif page == "Medical Report Analyzer":
     hero(
@@ -1017,39 +1007,54 @@ elif page == "Medical Report Analyzer":
             if client is None:
                 st.error("Gemini API is not configured.")
             else:
-                with st.spinner("Analyzing image..."):
+                with st.spinner("Analyzing image... (retrying if server is busy)"):
                     try:
-                        # Construct proper byte Part payload for the google-genai SDK
                         image_part = types.Part.from_bytes(
                             data=uploaded_file.getvalue(),
                             mime_type=uploaded_file.type,
                         )
 
-                        response = client.models.generate_content(
-                            model="gemini-3.6-flash",
-                            contents=[
-                                """
+                        prompt_text = """
 Explain this medical image in simple language.
 
 Do not diagnose.
 Do not prescribe treatment.
 Describe only general information that can reasonably be explained from the image.
 Recommend professional medical review when appropriate.
-""",
-                                image_part,
-                            ],
-                        )
+"""
 
-                        answer = response.text
-                        st.success("Analysis complete")
-                        show_result(answer)
+                        # Automatic retry mechanism for 503 / temporary unavailable errors
+                        max_retries = 3
+                        response = None
+
+                        for attempt in range(max_retries):
+                            try:
+                                response = client.models.generate_content(
+                                    model="gemini-3.6-flash",
+                                    contents=[prompt_text, image_part],
+                                )
+                                break
+                            except Exception as err:
+                                err_msg = str(err)
+                                if ("503" in err_msg or "UNAVAILABLE" in err_msg) and attempt < max_retries - 1:
+                                    time.sleep(2 * (attempt + 1))  # Exponential delay: 2s, 4s
+                                    continue
+                                raise err
+
+                        if response and response.text:
+                            st.success("Analysis complete")
+                            show_result(response.text)
 
                     except Exception as exc:
-                        st.error(f"Image analysis failed: {exc}")
+                        if "503" in str(exc) or "UNAVAILABLE" in str(exc):
+                            st.error("The Gemini server is temporarily busy right now. Please wait a few seconds and try clicking 'Analyze Image' again.")
+                        else:
+                            st.error(f"Image analysis failed: {exc}")
 
                 st.info(
                     "⚠️ This is an educational explanation and is not a medical diagnosis."
                 )
+
 
 # =========================================================
 # PAGE: HEALTH DASHBOARD
