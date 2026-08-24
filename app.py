@@ -1,5 +1,6 @@
 import time
 import streamlit as st
+import streamlit.components.v1 as components
 from google import genai
 from google.genai import types
 
@@ -18,6 +19,42 @@ st.set_page_config(
     page_icon="🧬",
     layout="wide",
     initial_sidebar_state="expanded",
+)
+
+
+# =========================================================
+# AUTOMATIC SIDEBAR CLOSE ON MOBILE SELECTION
+# =========================================================
+components.html(
+    """
+    <script>
+    const parentDoc = window.parent.document;
+    function setupMobileSidebarAutoClose() {
+        const labels = parentDoc.querySelectorAll('[data-testid="stSidebar"] label');
+        labels.forEach(label => {
+            if (!label.dataset.hasAutoClose) {
+                label.dataset.hasAutoClose = "true";
+                label.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        setTimeout(function() {
+                            const closeBtn = parentDoc.querySelector('button[data-testid="stSidebarCollapseButton"]') 
+                                          || parentDoc.querySelector('[data-testid="stSidebar"] button');
+                            if (closeBtn) {
+                                closeBtn.click();
+                            }
+                        }, 250);
+                    }
+                });
+            }
+        });
+    }
+    setupMobileSidebarAutoClose();
+    const observer = new MutationObserver(setupMobileSidebarAutoClose);
+    observer.observe(parentDoc.body, { childList: true, subtree: true });
+    </script>
+    """,
+    height=0,
+    width=0,
 )
 
 
@@ -76,7 +113,7 @@ def ask_ai(prompt, model="gemini-3.6-flash"):
 
 
 # =========================================================
-# THEME CONFIGURATION (COLOR-ENRICHED PALETTE)
+# THEME CONFIGURATION (FUTURISTIC DARK PALETTE)
 # =========================================================
 accent_colors = {
     "Cyan": "#00f2fe",
@@ -87,20 +124,19 @@ accent_colors = {
 
 accent = accent_colors.get(st.session_state.accent, "#00f2fe")
 
-# Rich Dual-Tone Sapphire/Amethyst/Teal Defaults
-background = "#131b38"
-sidebar_bg = "#111827"
-surface = "rgba(30, 41, 78, 0.72)"
-surface2 = "rgba(45, 62, 115, 0.75)"
-text = "#ffffff"
-muted = "#cbd5e1"
-border = "rgba(255, 255, 255, 0.18)"
-card_shadow = "0 14px 40px 0 rgba(10, 16, 40, 0.45)"
-glass_blur = "blur(20px)"
+background = "#040711"
+sidebar_bg = "rgba(10, 15, 30, 0.95)"
+surface = "rgba(15, 23, 42, 0.75)"
+surface2 = "rgba(30, 41, 75, 0.7)"
+text = "#f8fafc"
+muted = "#94a3b8"
+border = "rgba(0, 242, 254, 0.18)"
+card_shadow = "0 12px 35px 0 rgba(0, 0, 0, 0.65)"
+glass_blur = "blur(16px)"
 
 
 # =========================================================
-# STYLESHEET WITH COLORFUL BACKGROUND ANIMATION
+# STYLESHEET (MOBILE-OPTIMIZED & FUTURISTIC DARK)
 # =========================================================
 st.markdown(
     f"""
@@ -119,106 +155,92 @@ st.markdown(
     --blur: {glass_blur};
 }}
 
-/* Dynamic Aurora Background Animation */
+/* Futuristic Dark Animated Background */
 .stApp {{
-    background: linear-gradient(135deg, #131b38 0%, #1e1b4b 28%, #0f2c59 55%, #1e1b4b 78%, #142147 100%);
-    background-size: 300% 300%;
-    animation: auroraWave 14s ease-in-out infinite alternate;
+    background: radial-gradient(circle at 50% 0%, #0d1527 0%, #040711 65%, #020409 100%);
+    background-size: 200% 200%;
+    animation: cyberPulse 16s ease-in-out infinite alternate;
     color: var(--text);
     font-family: 'Plus Jakarta Sans', sans-serif;
 }}
 
-@keyframes auroraWave {{
-    0% {{ background-position: 0% 20%; }}
-    50% {{ background-position: 100% 80%; }}
-    100% {{ background-position: 0% 20%; }}
+@keyframes cyberPulse {{
+    0% {{ background-position: 50% 0%; }}
+    50% {{ background-position: 50% 100%; }}
+    100% {{ background-position: 50% 0%; }}
 }}
 
-/* Decorative Floating Glowing Mesh Orbs */
+/* Glowing Cyber Ambient Lights */
 .stApp::before {{
     content: '';
     position: fixed;
-    top: -150px;
-    left: -150px;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(0, 242, 254, 0.35) 0%, rgba(56, 189, 248, 0.15) 45%, transparent 70%);
-    filter: blur(50px);
+    top: -120px;
+    left: -120px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(0, 242, 254, 0.22) 0%, rgba(56, 189, 248, 0.08) 50%, transparent 70%);
+    filter: blur(60px);
     z-index: 0;
     pointer-events: none;
-    animation: floatOrbOne 18s ease-in-out infinite alternate;
 }}
 
 .stApp::after {{
     content: '';
     position: fixed;
-    bottom: -150px;
-    right: -150px;
-    width: 650px;
-    height: 650px;
-    background: radial-gradient(circle, rgba(192, 132, 252, 0.32) 0%, rgba(236, 72, 153, 0.18) 50%, transparent 70%);
-    filter: blur(55px);
+    bottom: -120px;
+    right: -120px;
+    width: 550px;
+    height: 550px;
+    background: radial-gradient(circle, rgba(192, 132, 252, 0.2) 0%, rgba(168, 85, 247, 0.06) 50%, transparent 70%);
+    filter: blur(65px);
     z-index: 0;
     pointer-events: none;
-    animation: floatOrbTwo 16s ease-in-out infinite alternate;
 }}
 
-@keyframes floatOrbOne {{
-    0% {{ transform: translate(0, 0) scale(1); }}
-    50% {{ transform: translate(120px, 90px) scale(1.15); }}
-    100% {{ transform: translate(40px, 140px) scale(0.95); }}
-}}
-
-@keyframes floatOrbTwo {{
-    0% {{ transform: translate(0, 0) scale(1); }}
-    50% {{ transform: translate(-100px, -110px) scale(1.12); }}
-    100% {{ transform: translate(-30px, -160px) scale(0.92); }}
-}}
-
-/* Modern Sidebar */
+/* Ultra-Modern Glass Sidebar */
 [data-testid="stSidebar"] {{
-    background: linear-gradient(180deg, rgba(17, 24, 47, 0.92) 0%, rgba(26, 36, 68, 0.94) 100%) !important;
+    background: linear-gradient(180deg, rgba(8, 12, 24, 0.96) 0%, rgba(13, 20, 38, 0.97) 100%) !important;
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
-    border-right: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 6px 0 30px rgba(0, 0, 0, 0.25);
+    border-right: 1px solid rgba(0, 242, 254, 0.15);
+    box-shadow: 10px 0 35px rgba(0, 0, 0, 0.5);
 }}
 
 [data-testid="stSidebar"] div[data-testid="stRadio"] label {{
-    border-radius: 14px;
-    padding: 11px 16px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 12px;
+    padding: 10px 14px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     border: 1px solid transparent;
-    font-size: 14.5px;
+    font-size: 14px;
     font-weight: 500;
-    color: #e2e8f0;
-    margin-bottom: 3px;
+    color: #cbd5e1;
+    margin-bottom: 2px;
 }}
 
 [data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {{
-    background: linear-gradient(90deg, rgba(0, 242, 254, 0.2) 0%, rgba(192, 132, 252, 0.15) 100%);
-    border-color: rgba(0, 242, 254, 0.45);
+    background: rgba(0, 242, 254, 0.12);
+    border-color: rgba(0, 242, 254, 0.35);
     color: #ffffff;
-    transform: translateX(6px);
+    transform: translateX(4px);
 }}
 
 h1, h2, h3, h4, h5, h6 {{
     font-family: 'Outfit', sans-serif !important;
     color: var(--text) !important;
     font-weight: 800 !important;
-    letter-spacing: -0.03em !important;
+    letter-spacing: -0.02em !important;
 }}
 
 .hero {{
-    padding: 38px 44px;
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    border-radius: 26px;
-    background: linear-gradient(135deg, rgba(37, 51, 98, 0.88) 0%, rgba(28, 40, 77, 0.85) 50%, rgba(46, 37, 84, 0.82) 100%);
+    padding: 32px 36px;
+    border: 1px solid rgba(0, 242, 254, 0.22);
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(20, 30, 55, 0.8) 100%);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
-    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.35);
-    margin-bottom: 28px;
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.45);
+    margin-bottom: 24px;
     position: relative;
     overflow: hidden;
 }}
@@ -228,147 +250,132 @@ h1, h2, h3, h4, h5, h6 {{
     position: absolute;
     top: 0;
     left: 0;
-    width: 6px;
+    width: 5px;
     height: 100%;
-    background: linear-gradient(180deg, #00f2fe 0%, #c084fc 50%, #34d399 100%);
+    background: linear-gradient(180deg, #00f2fe 0%, #c084fc 100%);
 }}
 
 .hero small {{
     color: var(--accent);
     font-family: 'Outfit', sans-serif;
     font-weight: 800;
-    letter-spacing: 2.5px;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    font-size: 11px;
-    background: rgba(0, 242, 254, 0.18);
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 1px solid rgba(0, 242, 254, 0.35);
+    font-size: 10.5px;
+    background: rgba(0, 242, 254, 0.12);
+    padding: 5px 12px;
+    border-radius: 18px;
+    border: 1px solid rgba(0, 242, 254, 0.3);
     display: inline-block;
 }}
 
 .hero h1 {{
-    margin: 14px 0 10px 0;
-    font-size: clamp(30px, 4vw, 48px);
-    line-height: 1.1;
-    background: linear-gradient(120deg, #ffffff 40%, #00f2fe 75%, #c084fc 100%);
+    margin: 12px 0 8px 0;
+    font-size: clamp(24px, 4vw, 42px);
+    line-height: 1.15;
+    background: linear-gradient(120deg, #ffffff 30%, #00f2fe 75%, #c084fc 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }}
 
 .hero p {{
-    color: #e2e8f0;
+    color: #94a3b8;
     margin: 0;
-    font-size: 16px;
+    font-size: 15px;
     line-height: 1.6;
     max-width: 760px;
 }}
 
 .card {{
-    background: linear-gradient(145deg, rgba(38, 52, 98, 0.85) 0%, rgba(27, 39, 75, 0.8) 100%);
+    background: linear-gradient(145deg, rgba(17, 26, 48, 0.85) 0%, rgba(11, 17, 33, 0.8) 100%);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     border: 1px solid var(--border);
-    border-radius: 22px;
-    padding: 24px;
-    min-height: 140px;
+    border-radius: 20px;
+    padding: 20px;
+    min-height: 130px;
     box-shadow: var(--shadow);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    position: relative;
 }}
 
 .card:hover {{
-    transform: translateY(-5px);
+    transform: translateY(-4px);
     border-color: var(--accent);
-    box-shadow: 0 16px 36px -6px rgba(0, 242, 254, 0.35);
-    background: linear-gradient(145deg, rgba(46, 62, 116, 0.9) 0%, rgba(32, 45, 87, 0.85) 100%);
+    box-shadow: 0 12px 30px rgba(0, 242, 254, 0.25);
 }}
 
 .card .icon {{
-    font-size: 42px !important;
+    font-size: 36px !important;
     line-height: 1;
-    filter: drop-shadow(0 0 12px rgba(0, 242, 254, 0.45));
-    transition: transform 0.3s ease;
-}}
-
-.card:hover .icon {{
-    transform: scale(1.12);
+    filter: drop-shadow(0 0 10px rgba(0, 242, 254, 0.5));
 }}
 
 .card .label {{
-    color: #cbd5e1;
-    font-size: 11.5px;
-    margin-top: 14px;
+    color: #94a3b8;
+    font-size: 11px;
+    margin-top: 10px;
     text-transform: uppercase;
     font-weight: 700;
-    letter-spacing: 1.5px;
+    letter-spacing: 1.2px;
 }}
 
 .card .value {{
     color: #ffffff;
     font-family: 'Outfit', sans-serif;
-    font-size: 27px;
+    font-size: 24px;
     font-weight: 800;
-    margin-top: 4px;
-    letter-spacing: -0.5px;
+    margin-top: 2px;
 }}
 
 .card .desc {{
-    color: #cbd5e1;
-    font-size: 13px;
-    margin-top: 4px;
+    color: #64748b;
+    font-size: 12.5px;
+    margin-top: 2px;
 }}
 
 .tool {{
-    background: linear-gradient(145deg, rgba(38, 52, 98, 0.85) 0%, rgba(27, 39, 75, 0.8) 100%);
+    background: linear-gradient(145deg, rgba(17, 26, 48, 0.85) 0%, rgba(11, 17, 33, 0.8) 100%);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     border: 1px solid var(--border);
-    border-radius: 22px 22px 0 0;
-    padding: 24px;
-    min-height: 140px;
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    min-height: 130px;
     box-shadow: var(--shadow);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s ease;
 }}
 
 .tool:hover {{
     border-color: rgba(0, 242, 254, 0.45);
-    background: linear-gradient(145deg, rgba(46, 62, 116, 0.9) 0%, rgba(32, 45, 87, 0.85) 100%);
 }}
 
 .tool-static {{
-    border-radius: 22px !important;
+    border-radius: 20px !important;
 }}
 
 .tool b {{
     font-family: 'Outfit', sans-serif;
     color: #ffffff;
-    font-size: 18.5px;
+    font-size: 17px;
     display: block;
-    margin-top: 12px;
-    letter-spacing: -0.3px;
+    margin-top: 10px;
 }}
 
 .tool p {{
-    color: #cbd5e1;
-    font-size: 13.5px;
+    color: #94a3b8;
+    font-size: 13px;
     line-height: 1.5;
-    margin-top: 6px;
+    margin-top: 4px;
     margin-bottom: 0;
 }}
 
 .tool-icon {{
-    font-size: 44px !important;
+    font-size: 38px !important;
     display: inline-block;
-    filter: drop-shadow(0 0 12px rgba(0, 242, 254, 0.45));
-    transition: transform 0.3s ease;
-}}
-
-.tool:hover .tool-icon {{
-    transform: scale(1.12);
+    filter: drop-shadow(0 0 10px rgba(0, 242, 254, 0.45));
 }}
 
 .status {{
@@ -376,80 +383,112 @@ h1, h2, h3, h4, h5, h6 {{
     gap: 8px;
     align-items: center;
     color: var(--accent);
-    background: rgba(0, 242, 254, 0.16);
-    border: 1px solid rgba(0, 242, 254, 0.4);
-    padding: 6px 14px;
-    border-radius: 30px;
-    font-size: 11px;
+    background: rgba(0, 242, 254, 0.12);
+    border: 1px solid rgba(0, 242, 254, 0.3);
+    padding: 5px 12px;
+    border-radius: 24px;
+    font-size: 10.5px;
     font-weight: 800;
     letter-spacing: 1px;
-    box-shadow: 0 0 14px rgba(0, 242, 254, 0.25);
 }}
 
 .dot {{
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 10px var(--accent);
+    box-shadow: 0 0 8px var(--accent);
     animation: pulseGlow 1.8s infinite;
 }}
 
 @keyframes pulseGlow {{
-    0% {{ transform: scale(0.9); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.7); }}
-    70% {{ transform: scale(1.15); box-shadow: 0 0 0 7px rgba(0, 242, 254, 0); }}
-    100% {{ transform: scale(0.9); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0); }}
+    0% {{ transform: scale(0.9); opacity: 0.7; }}
+    50% {{ transform: scale(1.2); opacity: 1; }}
+    100% {{ transform: scale(0.9); opacity: 0.7; }}
 }}
 
 .result {{
-    background: linear-gradient(135deg, rgba(34, 48, 92, 0.9) 0%, rgba(42, 58, 108, 0.85) 100%);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(20, 30, 55, 0.85) 100%);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     border: 1px solid var(--border);
-    border-left: 5px solid var(--accent);
-    border-radius: 20px;
-    padding: 24px;
+    border-left: 4px solid var(--accent);
+    border-radius: 18px;
+    padding: 22px;
     box-shadow: var(--shadow);
-    margin-top: 20px;
-    line-height: 1.7;
+    margin-top: 18px;
+    line-height: 1.65;
     color: #ffffff;
+    word-break: break-word;
 }}
 
 .stButton > button, div[data-testid="stDownloadButton"] > button {{
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: linear-gradient(135deg, rgba(46, 62, 116, 0.95) 0%, rgba(34, 48, 92, 0.95) 100%);
+    border: 1px solid rgba(0, 242, 254, 0.25);
+    background: linear-gradient(135deg, rgba(20, 32, 60, 0.9) 0%, rgba(13, 20, 38, 0.9) 100%);
     color: #ffffff;
     font-weight: 600;
-    padding: 11px 22px;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 12px 20px;
+    transition: all 0.25s ease;
     width: 100%;
+    min-height: 48px;
 }}
 
 .stButton > button:hover, div[data-testid="stDownloadButton"] > button:hover {{
     border-color: var(--accent);
     color: var(--accent);
-    background: linear-gradient(135deg, rgba(58, 78, 142, 1) 0%, rgba(42, 60, 114, 1) 100%);
-    box-shadow: 0 6px 20px rgba(0, 242, 254, 0.35);
-    transform: translateY(-2px);
+    background: linear-gradient(135deg, rgba(28, 45, 85, 0.95) 0%, rgba(18, 28, 55, 0.95) 100%);
+    box-shadow: 0 4px 18px rgba(0, 242, 254, 0.3);
 }}
 
 div[data-testid="stColumn"] .stButton > button {{
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
-    border-bottom-left-radius: 20px;
-    border-bottom-right-radius: 20px;
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
     margin-top: -1px;
 }}
 
 .footer {{
     text-align: center;
-    color: #cbd5e1;
-    font-size: 13px;
-    padding: 36px 0 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-    margin-top: 50px;
-    line-height: 1.7;
+    color: #64748b;
+    font-size: 12.5px;
+    padding: 28px 0 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin-top: 45px;
+    line-height: 1.6;
+}}
+
+/* =========================================================
+   MOBILE RESPONSIVE MEDIA QUERIES (PHONE SUITABILITY)
+   ========================================================= */
+@media (max-width: 768px) {{
+    .hero {{
+        padding: 22px 18px !important;
+        border-radius: 18px !important;
+        margin-bottom: 18px !important;
+    }}
+    .hero h1 {{
+        font-size: 24px !important;
+    }}
+    .hero p {{
+        font-size: 13.5px !important;
+    }}
+    .card, .tool {{
+        padding: 16px !important;
+        border-radius: 16px !important;
+        min-height: auto !important;
+    }}
+    .tool {{
+        border-radius: 16px 16px 0 0 !important;
+    }}
+    .result {{
+        padding: 16px !important;
+        border-radius: 14px !important;
+    }}
+    [data-testid="stSidebar"] {{
+        width: 82vw !important;
+    }}
 }}
 </style>
 """,
@@ -579,15 +618,15 @@ page_icons = {
 with st.sidebar:
     st.markdown(
         f"""
-        <div style="text-align:center; padding:14px 0 20px;">
-            <div style="font-size:50px; line-height:1; filter: drop-shadow(0 0 14px rgba(0,242,254,0.55));">🧬</div>
-            <div style="font-family:'Outfit'; font-size:24px; font-weight:800; color:{accent}; margin-top:8px; letter-spacing:-0.5px;">
+        <div style="text-align:center; padding:10px 0 16px;">
+            <div style="font-size:44px; line-height:1; filter: drop-shadow(0 0 12px rgba(0,242,254,0.6));">🧬</div>
+            <div style="font-family:'Outfit'; font-size:22px; font-weight:800; color:{accent}; margin-top:6px; letter-spacing:-0.5px;">
                 HealthMate AI
             </div>
-            <div style="font-size:10px; color:{muted}; letter-spacing:2px; margin-top:2px; font-weight:700;">
+            <div style="font-size:9.5px; color:{muted}; letter-spacing:2px; margin-top:2px; font-weight:700;">
                 HEALTH INTELLIGENCE
             </div>
-            <div style="margin-top:14px;">
+            <div style="margin-top:12px;">
                 <span class="status">
                     <span class="dot"></span>
                     SYSTEM ONLINE
@@ -722,7 +761,7 @@ if page == "Home":
             target_page="AI Command Center",
         )
 
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
     st.markdown("### System Status", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
