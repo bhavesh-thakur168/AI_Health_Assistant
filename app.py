@@ -55,7 +55,7 @@ def get_client():
 client = get_client()
 
 
-def ask_ai(prompt, model="gemini-2.5-flash"):
+def ask_ai(prompt, model="gemini-3.6-flash"):
     """Lightweight, reusable Gemini AI text prompt function."""
     if client is None:
         st.error(
@@ -1176,7 +1176,7 @@ Recommend professional medical review when appropriate.
                         for attempt in range(max_retries):
                             try:
                                 response = client.models.generate_content(
-                                    model="gemini-2.5-flash",
+                                    model="gemini-3.6-flash",
                                     contents=[prompt_text, image_part],
                                 )
                                 break
