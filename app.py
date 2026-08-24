@@ -68,6 +68,10 @@ session_defaults = {
     "water": None,
     "sleep": None,
     "accent": "Cyan",
+    "enable_animations": True,
+    "anim_speed": "Normal (15s)",
+    "font_scale": "Balanced",
+    "ai_model": "gemini-3.6-flash",
 }
 
 for key, default_value in session_defaults.items():
@@ -92,7 +96,7 @@ def get_client():
 client = get_client()
 
 
-def ask_ai(prompt, model="gemini-3.6-flash"):
+def ask_ai(prompt, model=None):
     """Lightweight, reusable Gemini AI text prompt function."""
     if client is None:
         st.error(
@@ -101,9 +105,10 @@ def ask_ai(prompt, model="gemini-3.6-flash"):
         )
         return None
 
+    selected_model = model or st.session_state.ai_model
     try:
         response = client.models.generate_content(
-            model=model,
+            model=selected_model,
             contents=prompt,
         )
         return response.text
@@ -113,7 +118,7 @@ def ask_ai(prompt, model="gemini-3.6-flash"):
 
 
 # =========================================================
-# THEME CONFIGURATION (FUTURISTIC DARK PALETTE)
+# THEME & ANIMATION DYNAMIC CONFIGURATION
 # =========================================================
 accent_colors = {
     "Cyan": "#00f2fe",
@@ -124,8 +129,24 @@ accent_colors = {
 
 accent = accent_colors.get(st.session_state.accent, "#00f2fe")
 
+# Animation Speed Adjuster
+speed_map = {
+    "Fast (8s)": "8s",
+    "Normal (15s)": "15s",
+    "Relaxed (25s)": "25s",
+}
+bg_speed = speed_map.get(st.session_state.anim_speed, "15s")
+anim_play_state = "running" if st.session_state.enable_animations else "paused"
+
+# Font Scale Adjuster
+font_sizes = {
+    "Compact": {"root": "13px", "hero": "22px", "h1": "34px"},
+    "Balanced": {"root": "14px", "hero": "24px", "h1": "40px"},
+    "Large": {"root": "15.5px", "hero": "26px", "h1": "44px"},
+}
+scale = font_sizes.get(st.session_state.font_scale, font_sizes["Balanced"])
+
 background = "#040711"
-sidebar_bg = "rgba(10, 15, 30, 0.95)"
 surface = "rgba(15, 23, 42, 0.75)"
 surface2 = "rgba(30, 41, 75, 0.7)"
 text = "#f8fafc"
@@ -136,7 +157,7 @@ glass_blur = "blur(16px)"
 
 
 # =========================================================
-# STYLESHEET (MOBILE-OPTIMIZED & FUTURISTIC DARK)
+# STYLESHEET WITH ENHANCED ANIMATIONS & RESPONSIVENESS
 # =========================================================
 st.markdown(
     f"""
@@ -155,22 +176,23 @@ st.markdown(
     --blur: {glass_blur};
 }}
 
-/* Futuristic Dark Animated Background */
+/* Dynamic Mesh Background Animation */
 .stApp {{
-    background: radial-gradient(circle at 50% 0%, #0d1527 0%, #040711 65%, #020409 100%);
-    background-size: 200% 200%;
-    animation: cyberPulse 16s ease-in-out infinite alternate;
+    background: linear-gradient(-45deg, #040711, #0a1128, #051833, #110726);
+    background-size: 400% 400%;
+    animation: gradientBG {bg_speed} ease infinite {anim_play_state};
     color: var(--text);
     font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: {scale['root']};
 }}
 
-@keyframes cyberPulse {{
-    0% {{ background-position: 50% 0%; }}
-    50% {{ background-position: 50% 100%; }}
-    100% {{ background-position: 50% 0%; }}
+@keyframes gradientBG {{
+    0% {{ background-position: 0% 50%; }}
+    50% {{ background-position: 100% 50%; }}
+    100% {{ background-position: 0% 50%; }}
 }}
 
-/* Glowing Cyber Ambient Lights */
+/* Glowing Ambient Floating Orbs */
 .stApp::before {{
     content: '';
     position: fixed;
@@ -182,6 +204,7 @@ st.markdown(
     filter: blur(60px);
     z-index: 0;
     pointer-events: none;
+    animation: floatOrb 12s ease-in-out infinite alternate {anim_play_state};
 }}
 
 .stApp::after {{
@@ -195,6 +218,29 @@ st.markdown(
     filter: blur(65px);
     z-index: 0;
     pointer-events: none;
+    animation: floatOrb 16s ease-in-out infinite alternate-reverse {anim_play_state};
+}}
+
+@keyframes floatOrb {{
+    0% {{ transform: translate(0px, 0px) scale(1); }}
+    50% {{ transform: translate(40px, -30px) scale(1.1); }}
+    100% {{ transform: translate(-20px, 20px) scale(0.95); }}
+}}
+
+/* Functional Page / Card Entrance Animations */
+.hero, .card, .tool, .result, div[data-testid="stForm"] {{
+    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}}
+
+@keyframes fadeInUp {{
+    from {{
+        opacity: 0;
+        transform: translateY(18px) scale(0.98);
+    }}
+    to {{
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }}
 }}
 
 /* Ultra-Modern Glass Sidebar */
@@ -209,7 +255,7 @@ st.markdown(
 [data-testid="stSidebar"] div[data-testid="stRadio"] label {{
     border-radius: 12px;
     padding: 10px 14px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     border: 1px solid transparent;
     font-size: 14px;
@@ -271,7 +317,7 @@ h1, h2, h3, h4, h5, h6 {{
 
 .hero h1 {{
     margin: 12px 0 8px 0;
-    font-size: clamp(24px, 4vw, 42px);
+    font-size: clamp(24px, 4vw, {scale['h1']});
     line-height: 1.15;
     background: linear-gradient(120deg, #ffffff 30%, #00f2fe 75%, #c084fc 100%);
     -webkit-background-clip: text;
@@ -281,7 +327,7 @@ h1, h2, h3, h4, h5, h6 {{
 .hero p {{
     color: #94a3b8;
     margin: 0;
-    font-size: 15px;
+    font-size: {scale['hero']};
     line-height: 1.6;
     max-width: 760px;
 }}
@@ -459,9 +505,6 @@ div[data-testid="stColumn"] .stButton > button {{
     line-height: 1.6;
 }}
 
-/* =========================================================
-   MOBILE RESPONSIVE MEDIA QUERIES (PHONE SUITABILITY)
-   ========================================================= */
 @media (max-width: 768px) {{
     .hero {{
         padding: 22px 18px !important;
@@ -666,7 +709,6 @@ if page == "Home":
 
     st.markdown("### Explore HealthMate Features", unsafe_allow_html=True)
 
-    # Row 1
     r1 = st.columns(3)
     with r1[0]:
         tool(
@@ -692,7 +734,6 @@ if page == "Home":
 
     st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
 
-    # Row 2
     r2 = st.columns(3)
     with r2[0]:
         tool(
@@ -718,7 +759,6 @@ if page == "Home":
 
     st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
 
-    # Row 3
     r3 = st.columns(3)
     with r3[0]:
         tool(
@@ -744,7 +784,6 @@ if page == "Home":
 
     st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
 
-    # Row 4
     r4 = st.columns(3)
     with r4[0]:
         tool(
@@ -1260,7 +1299,7 @@ Recommend professional medical review when appropriate.
                         for attempt in range(max_retries):
                             try:
                                 response = client.models.generate_content(
-                                    model="gemini-3.6-flash",
+                                    model=st.session_state.ai_model,
                                     contents=[prompt_text, image_part],
                                 )
                                 break
@@ -1409,32 +1448,94 @@ Use simple language.
 
 
 # =========================================================
-# PAGE: SETTINGS
+# PAGE: SETTINGS (EXPANDED CONTROL CENTER)
 # =========================================================
 elif page == "Settings":
     hero(
-        "Settings",
-        "Customize the lightweight HealthMate interface.",
-        "SYSTEM SETTINGS",
+        "Settings & Preferences",
+        "Customize visual themes, motion effects, font scaling, AI models, and session memory.",
+        "SYSTEM CONTROL",
     )
 
-    accent_choice = st.selectbox(
-        "Accent Color",
-        list(accent_colors.keys()),
-        index=list(accent_colors.keys()).index(st.session_state.accent),
-    )
+    col1, col2 = st.columns(2)
 
-    if accent_choice != st.session_state.accent:
-        st.session_state.accent = accent_choice
-        st.rerun()
+    with col1:
+        st.markdown("### 🎨 Visual & Motion Customization", unsafe_allow_html=True)
+        
+        # Accent Color
+        accent_choice = st.selectbox(
+            "Neon Accent Color",
+            list(accent_colors.keys()),
+            index=list(accent_colors.keys()).index(st.session_state.accent),
+        )
+        if accent_choice != st.session_state.accent:
+            st.session_state.accent = accent_choice
+            st.rerun()
 
-    st.markdown("<br>### System Status", unsafe_allow_html=True)
+        # Background Animations Toggle
+        anim_toggle = st.toggle(
+            "Enable Background Mesh Motion",
+            value=st.session_state.enable_animations,
+        )
+        if anim_toggle != st.session_state.enable_animations:
+            st.session_state.enable_animations = anim_toggle
+            st.rerun()
 
-    c1, c2 = st.columns(2)
+        # Animation Speed
+        speed_choice = st.selectbox(
+            "Background Speed",
+            ["Fast (8s)", "Normal (15s)", "Relaxed (25s)"],
+            index=["Fast (8s)", "Normal (15s)", "Relaxed (25s)"].index(st.session_state.anim_speed),
+        )
+        if speed_choice != st.session_state.anim_speed:
+            st.session_state.anim_speed = speed_choice
+            st.rerun()
+
+        # Typography Density Scale
+        font_choice = st.selectbox(
+            "Typography & UI Density Scale",
+            ["Compact", "Balanced", "Large"],
+            index=["Compact", "Balanced", "Large"].index(st.session_state.font_scale),
+        )
+        if font_choice != st.session_state.font_scale:
+            st.session_state.font_scale = font_choice
+            st.rerun()
+
+    with col2:
+        st.markdown("### 🧠 AI Engine & Data Management", unsafe_allow_html=True)
+        
+        # AI Engine Selection
+        model_choice = st.selectbox(
+            "Gemini AI Engine Model",
+            ["gemini-3.6-flash", "gemini-3.6-pro"],
+            index=0 if st.session_state.ai_model == "gemini-3.6-flash" else 1,
+            help="Flash provides ultra-fast generation; Pro offers deeper reasoning.",
+        )
+        if model_choice != st.session_state.ai_model:
+            st.session_state.ai_model = model_choice
+            st.rerun()
+
+        st.markdown("<div style='margin-top:20px;'></div>", unsafe_allow_html=True)
+        st.markdown("<b>Session Data Operations</b>", unsafe_allow_html=True)
+        
+        # Clear Cache & Reset Button
+        if st.button("🧹 Purge Session Memory & Reset State"):
+            st.session_state.bmi = None
+            st.session_state.water = None
+            st.session_state.sleep = None
+            st.session_state.chat_history = []
+            st.success("Session memory cleared successfully!")
+            st.rerun()
+
+    st.markdown("<br>### System Architecture", unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns(3)
     with c1:
-        card("📄", "PDF", "Ready" if create_pdf else "Unavailable")
+        card("📄", "PDF Module", "Ready" if create_pdf else "Unavailable")
     with c2:
-        card("⚡", "UI", "Fast Mode", "Lightweight design")
+        card("⚡", "Rendering", "Hardware Accel", "60 FPS CSS Keyframes")
+    with c3:
+        card("🤖", "AI Engine", st.session_state.ai_model, "Active Model")
 
 
 # =========================================================
