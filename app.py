@@ -139,7 +139,6 @@ current_theme = accent_themes.get(st.session_state.accent, accent_themes["Vibran
 accent = current_theme["primary"]
 theme_gradient = current_theme["gradient"]
 
-# Animation Speed Adjuster
 speed_map = {
     "Fast (8s)": "8s",
     "Normal (15s)": "15s",
@@ -148,7 +147,6 @@ speed_map = {
 bg_speed = speed_map.get(st.session_state.anim_speed, "15s")
 anim_play_state = "running" if st.session_state.enable_animations else "paused"
 
-# Font Scale Adjuster
 font_sizes = {
     "Compact": {"root": "13px", "hero": "22px", "h1": "34px"},
     "Balanced": {"root": "14px", "hero": "24px", "h1": "40px"},
@@ -187,7 +185,6 @@ st.markdown(
     --blur: {glass_blur};
 }}
 
-/* Dynamic Vibrant Background Animation */
 .stApp {{
     background: linear-gradient(-45deg, #030712, #0f172a, #1e1b4b, #31103f, #062033);
     background-size: 400% 400%;
@@ -203,7 +200,6 @@ st.markdown(
     100% {{ background-position: 0% 50%; }}
 }}
 
-/* Colorful Floating Glowing Orbs */
 .stApp::before {{
     content: '';
     position: fixed;
@@ -238,7 +234,6 @@ st.markdown(
     100% {{ transform: translate(-30px, 30px) scale(0.92); }}
 }}
 
-/* Card Entrance Keyframes */
 .hero, .card, .tool, .result, div[data-testid="stForm"], .master-card {{
     animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }}
@@ -254,7 +249,6 @@ st.markdown(
     }}
 }}
 
-/* Glass Sidebar */
 [data-testid="stSidebar"] {{
     background: linear-gradient(180deg, rgba(10, 15, 30, 0.96) 0%, rgba(20, 10, 35, 0.97) 100%) !important;
     backdrop-filter: var(--blur);
@@ -485,6 +479,7 @@ h1, h2, h3, h4, h5, h6 {{
     border: 1px solid rgba(236, 72, 153, 0.4);
     border-radius: 24px;
     padding: 24px;
+    margin-top: 24px;
     margin-bottom: 24px;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
 }}
@@ -645,8 +640,7 @@ def pdf_download(heading_or_input, answer, file_name="Health_Report.pdf", button
 def generate_master_session_pdf():
     """Aggregates all active session inputs, calculated metrics, and AI recommendations into 1 PDF."""
     if create_pdf is None:
-        st.error("PDF module unavailable.")
-        return None, "PDF module not imported."
+        return None, "PDF module unavailable."
 
     sections = []
     
@@ -679,7 +673,7 @@ def generate_master_session_pdf():
         sections.append(f"### MEDICAL IMAGE EXPLANATION\n{st.session_state.medical_report_result}")
 
     if not sections:
-        return None, "No data collected yet. Please use some features first before downloading the master summary!"
+        return None, "This function will be available after you use other features."
 
     master_content = "\n\n" + ("\n\n" + "="*40 + "\n\n").join(sections)
     heading = "HEALTHMATE AI - MASTER HEALTH & WELLNESS SUMMARY"
@@ -694,7 +688,7 @@ def generate_master_session_pdf():
 
 
 def render_master_download_banner(key_suffix="default"):
-    """Renders a 1-Click Master PDF Download Box."""
+    """Renders a 1-Click Master PDF Download Box at the end of pages."""
     st.markdown(
         """
         <div class="master-card">
@@ -709,9 +703,9 @@ def render_master_download_banner(key_suffix="default"):
         unsafe_allow_html=True,
     )
     
-    pdf_bytes, err = generate_master_session_pdf()
-    if err:
-        st.info(f"💡 {err}")
+    pdf_bytes, message = generate_master_session_pdf()
+    if pdf_bytes is None:
+        st.info(f"💡 {message}")
     else:
         st.download_button(
             "📥 Download Complete Master Health Summary (1-Click PDF)",
@@ -739,6 +733,7 @@ pages = [
     "Medical Report Analyzer",
     "Health Dashboard",
     "AI Command Center",
+    "Download Master PDF",
     "Settings",
     "About",
 ]
@@ -756,6 +751,7 @@ page_icons = {
     "Medical Report Analyzer": "📷",
     "Health Dashboard": "📊",
     "AI Command Center": "🧠",
+    "Download Master PDF": "📥",
     "Settings": "⚙️",
     "About": "ⓘ",
 }
@@ -809,8 +805,6 @@ if page == "Home":
         "AI HEALTH PLATFORM",
     )
 
-    render_master_download_banner("home")
-
     st.markdown("### Explore HealthMate Features", unsafe_allow_html=True)
 
     r1 = st.columns(3)
@@ -832,7 +826,7 @@ if page == "Home":
         tool(
             "📊",
             "Health Dashboard",
-            "See session data & download 1-Click Master PDF.",
+            "See session data & feature status.",
             target_page="Health Dashboard",
         )
 
@@ -903,6 +897,13 @@ if page == "Home":
             "Ask general health questions in interactive chat.",
             target_page="AI Command Center",
         )
+    with r4[2]:
+        tool(
+            "📥",
+            "Download Master PDF",
+            "Export all collected data in one consolidated PDF.",
+            target_page="Download Master PDF",
+        )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -917,6 +918,9 @@ if page == "Home":
     st.info(
         "⚠️ HealthMate AI provides general educational information only and is not a substitute for professional medical advice."
     )
+
+    # Master Download PDF moved to the very bottom of the Home page
+    render_master_download_banner("home_bottom")
 
 
 # =========================================================
@@ -1450,12 +1454,10 @@ Recommend professional medical review when appropriate.
 # =========================================================
 elif page == "Health Dashboard":
     hero(
-        "Health Dashboard & Master Export",
+        "Health Dashboard & Status",
         "A multi-color overview of all values calculated during your active session.",
         "SESSION HEALTH CENTER",
     )
-
-    render_master_download_banner("dashboard")
 
     bmi_value = (
         f"{st.session_state.bmi:.2f}"
@@ -1503,6 +1505,19 @@ elif page == "Health Dashboard":
             with col:
                 card(item[0], item[1], item[2], "Ready for Master PDF" if item[2] == "COMPLETED" else "Optional")
         st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
+
+
+# =========================================================
+# PAGE: DEDICATED MASTER PDF DOWNLOAD FUNCTION
+# =========================================================
+elif page == "Download Master PDF":
+    hero(
+        "1-Click Master Session PDF Export",
+        "Download all your session metrics, diet plans, workout schedules, symptom checks, and AI advice in one unified file.",
+        "EXPORTS & REPORTS",
+    )
+
+    render_master_download_banner("dedicated_pdf_page")
 
 
 # =========================================================
@@ -1577,7 +1592,6 @@ elif page == "Settings":
     with col1:
         st.markdown("### 🎨 Multi-Color Theme & Motion", unsafe_allow_html=True)
         
-        # Accent Theme Selection
         theme_choice = st.selectbox(
             "Visual Accent Theme Palette",
             list(accent_themes.keys()),
@@ -1587,7 +1601,6 @@ elif page == "Settings":
             st.session_state.accent = theme_choice
             st.rerun()
 
-        # Background Animations Toggle
         anim_toggle = st.toggle(
             "Enable Background Mesh Motion",
             value=st.session_state.enable_animations,
@@ -1596,7 +1609,6 @@ elif page == "Settings":
             st.session_state.enable_animations = anim_toggle
             st.rerun()
 
-        # Animation Speed
         speed_choice = st.selectbox(
             "Background Speed",
             ["Fast (8s)", "Normal (15s)", "Relaxed (25s)"],
@@ -1606,7 +1618,6 @@ elif page == "Settings":
             st.session_state.anim_speed = speed_choice
             st.rerun()
 
-        # Typography Density Scale
         font_choice = st.selectbox(
             "Typography & UI Density Scale",
             ["Compact", "Balanced", "Large"],
@@ -1617,9 +1628,8 @@ elif page == "Settings":
             st.rerun()
 
     with col2:
-        st.markdown("### 🧠 AI Engine & Master Export", unsafe_allow_html=True)
+        st.markdown("### 🧠 AI Engine & Memory", unsafe_allow_html=True)
         
-        # AI Engine Selection
         model_choice = st.selectbox(
             "Gemini AI Engine Model",
             ["gemini-3.6-flash", "gemini-3.6-pro"],
@@ -1633,7 +1643,6 @@ elif page == "Settings":
         st.markdown("<div style='margin-top:20px;'></div>", unsafe_allow_html=True)
         st.markdown("<b>Session Data Operations</b>", unsafe_allow_html=True)
         
-        # Clear Cache & Reset Button
         if st.button("🧹 Purge Session Memory & Reset State"):
             st.session_state.bmi = None
             st.session_state.bmi_category = None
@@ -1649,9 +1658,6 @@ elif page == "Settings":
             st.session_state.chat_history = []
             st.success("Session memory cleared successfully!")
             st.rerun()
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    render_master_download_banner("settings")
 
 
 # =========================================================
