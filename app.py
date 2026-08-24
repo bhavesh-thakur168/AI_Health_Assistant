@@ -66,7 +66,7 @@ def fallback_create_pdf(title, content):
 # =========================================================
 st.set_page_config(
     page_title="HealthMate AI",
-    page_icon="🧬",
+    page_icon="??",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -561,7 +561,7 @@ def tool(icon, title, description, target_page=None):
     )
     if target_page:
         if st.button(
-            f"Open {title} →",
+            f"Open {title} ?",
             key=f"nav_btn_{target_page}",
             use_container_width=True,
         ):
@@ -575,7 +575,7 @@ def show_result(text):
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-def pdf_download(heading_or_input, answer, file_name="Health_Report.pdf", button_label="📄 Download Health Report", key=None):
+def pdf_download(heading_or_input, answer, file_name="Health_Report.pdf", button_label="?? Download Health Report", key=None):
     """Reliable multi-strategy PDF downloader."""
     try:
         data = None
@@ -624,27 +624,27 @@ pages = [
 ]
 
 page_icons = {
-    "Home": "⌂",
-    "AI Symptom Checker": "🤖",
-    "Medicine Info": "💊",
-    "BMI Calculator": "⚖️",
-    "Water Intake": "💧",
-    "Diet Planner": "🍎",
-    "Exercise Planner": "🏃",
-    "Calorie Calculator": "🔥",
-    "Sleep Recommendation": "😴",
-    "Medical Report Analyzer": "📷",
-    "Health Dashboard": "📊",
-    "AI Command Center": "🧠",
-    "Settings": "⚙️",
-    "About": "ⓘ",
+    "Home": "?",
+    "AI Symptom Checker": "??",
+    "Medicine Info": "??",
+    "BMI Calculator": "??",
+    "Water Intake": "??",
+    "Diet Planner": "??",
+    "Exercise Planner": "??",
+    "Calorie Calculator": "??",
+    "Sleep Recommendation": "??",
+    "Medical Report Analyzer": "??",
+    "Health Dashboard": "??",
+    "AI Command Center": "??",
+    "Settings": "??",
+    "About": "?",
 }
 
 with st.sidebar:
     st.markdown(
         f"""
         <div style="text-align:center; padding:14px 0 20px;">
-            <div style="font-size:50px; line-height:1; filter: drop-shadow(0 0 14px rgba(0,242,254,0.55));">🧬</div>
+            <div style="font-size:50px; line-height:1; filter: drop-shadow(0 0 14px rgba(0,242,254,0.55));">??</div>
             <div style="font-family:'Outfit'; font-size:24px; font-weight:800; color:{accent}; margin-top:8px; letter-spacing:-0.5px;">
                 HealthMate AI
             </div>
@@ -695,21 +695,21 @@ if page == "Home":
     r1 = st.columns(3)
     with r1[0]:
         tool(
-            "🤖",
+            "??",
             "AI Symptom Checker",
             "Describe symptoms for general educational guidance.",
             target_page="AI Symptom Checker",
         )
     with r1[1]:
         tool(
-            "💊",
+            "??",
             "Medicine Info",
             "Learn general information about medicines.",
             target_page="Medicine Info",
         )
     with r1[2]:
         tool(
-            "📊",
+            "??",
             "Health Dashboard",
             "See values calculated during this session.",
             target_page="Health Dashboard",
@@ -721,21 +721,21 @@ if page == "Home":
     r2 = st.columns(3)
     with r2[0]:
         tool(
-            "⚖️",
+            "??",
             "BMI Calculator",
             "Calculate BMI from height and weight.",
             target_page="BMI Calculator",
         )
     with r2[1]:
         tool(
-            "💧",
+            "??",
             "Water Intake",
             "Estimate general daily water needs.",
             target_page="Water Intake",
         )
     with r2[2]:
         tool(
-            "🍎",
+            "??",
             "Diet Planner",
             "Generate a simple Indian diet plan.",
             target_page="Diet Planner",
@@ -747,21 +747,21 @@ if page == "Home":
     r3 = st.columns(3)
     with r3[0]:
         tool(
-            "🏃",
+            "??",
             "Exercise Planner",
             "Generate simple workout plans tailored to goals.",
             target_page="Exercise Planner",
         )
     with r3[1]:
         tool(
-            "🔥",
+            "??",
             "Calorie Calculator",
             "Estimate calories and macros from meal descriptions.",
             target_page="Calorie Calculator",
         )
     with r3[2]:
         tool(
-            "😴",
+            "??",
             "Sleep Recommendation",
             "Get personalized guidance for healthy sleep habits.",
             target_page="Sleep Recommendation",
@@ -773,14 +773,14 @@ if page == "Home":
     r4 = st.columns(3)
     with r4[0]:
         tool(
-            "📷",
+            "??",
             "Medical Report Analyzer",
             "Upload image reports for educational AI breakdown.",
             target_page="Medical Report Analyzer",
         )
     with r4[1]:
         tool(
-            "🧠",
+            "??",
             "AI Command Center",
             "Ask general health & wellness questions in interactive chat.",
             target_page="AI Command Center",
@@ -791,13 +791,13 @@ if page == "Home":
     st.markdown("### System Status", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
-        card("🧰", "Tools", "12+", "Health utilities")
+        card("??", "Tools", "12+", "Health utilities")
     with c2:
-        card("📄", "Reports", "PDF", "Downloadable reports")
+        card("??", "Reports", "PDF", "Downloadable reports")
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.info(
-        "⚠️ HealthMate AI provides general educational information only and is not a substitute for professional medical advice."
+        "?? HealthMate AI provides general educational information only and is not a substitute for professional medical advice."
     )
 
 
@@ -842,12 +842,12 @@ Keep the language simple.
                     symptoms,
                     answer,
                     file_name="Symptom_Report.pdf",
-                    button_label="📄 Download Symptom Report",
+                    button_label="?? Download Symptom Report",
                     key="pdf_symptoms",
                 )
 
         st.info(
-            "⚠️ This response is educational and should not be treated as a medical diagnosis."
+            "?? This response is educational and should not be treated as a medical diagnosis."
         )
 
 
@@ -865,7 +865,7 @@ elif page == "Medicine Info":
         placeholder="Example: Paracetamol",
     )
 
-    if st.button("💊 Get Medicine Information"):
+    if st.button("?? Get Medicine Information"):
         if not medicine.strip():
             st.warning("Please enter a medicine name.")
         else:
@@ -899,10 +899,10 @@ Do not personalize treatment.
             f"Medicine Information: {st.session_state.med_query}",
             st.session_state.med_result,
             file_name=f"Medicine_Info_{st.session_state.med_query}.pdf",
-            button_label="📄 Download Medicine Guide",
+            button_label="?? Download Medicine Guide",
             key="pdf_med",
         )
-        st.info("⚠️ Consult a qualified healthcare professional before taking medicines.")
+        st.info("?? Consult a qualified healthcare professional before taking medicines.")
 
 
 # =========================================================
@@ -950,7 +950,7 @@ elif page == "BMI Calculator":
             step=0.5,
         )
 
-    if st.button("⚖️ Calculate BMI"):
+    if st.button("?? Calculate BMI"):
         if height_m > 0:
             bmi = weight / (height_m * height_m)
             st.session_state.bmi = bmi
@@ -967,9 +967,9 @@ elif page == "BMI Calculator":
             st.markdown("<br>", unsafe_allow_html=True)
             a, b = st.columns(2)
             with a:
-                card("⚖️", "BMI", f"{bmi:.2f}", "Calculated value")
+                card("??", "BMI", f"{bmi:.2f}", "Calculated value")
             with b:
-                card("🩺", "Category", category, "General BMI category")
+                card("??", "Category", category, "General BMI category")
 
             st.markdown("<br>", unsafe_allow_html=True)
             st.info(
@@ -995,7 +995,7 @@ elif page == "Water Intake":
         step=0.5,
     )
 
-    if st.button("💧 Calculate Water Intake"):
+    if st.button("?? Calculate Water Intake"):
         water_ml = weight * 35
         litres = water_ml / 1000
         st.session_state.water = litres
@@ -1003,9 +1003,9 @@ elif page == "Water Intake":
         st.markdown("<br>", unsafe_allow_html=True)
         a, b = st.columns(2)
         with a:
-            card("💧", "Recommended", f"{litres:.2f} L", "General daily estimate")
+            card("??", "Recommended", f"{litres:.2f} L", "General daily estimate")
         with b:
-            card("🫗", "Millilitres", f"{water_ml:.0f} ml", "Per day estimate")
+            card("??", "Millilitres", f"{water_ml:.0f} ml", "Per day estimate")
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.info("Your actual needs can vary with climate, activity, diet, and health.")
@@ -1032,7 +1032,7 @@ elif page == "Diet Planner":
             ["Weight Loss", "Weight Gain", "Healthy Lifestyle"],
         )
 
-    if st.button("🍎 Generate Diet Plan"):
+    if st.button("?? Generate Diet Plan"):
         with st.spinner("Generating diet plan..."):
             answer = ask_ai(
                 f"""
@@ -1065,7 +1065,7 @@ Do not provide medical treatment.
             f"Diet Plan ({st.session_state.diet_query})",
             st.session_state.diet_result,
             file_name=f"Diet_Plan_{goal.replace(' ', '_')}.pdf",
-            button_label="📄 Download Diet Plan",
+            button_label="?? Download Diet Plan",
             key="pdf_diet",
         )
 
@@ -1094,7 +1094,7 @@ elif page == "Exercise Planner":
             ["Weight Loss", "Muscle Gain", "Stay Fit"],
         )
 
-    if st.button("🏃 Generate Exercise Plan"):
+    if st.button("?? Generate Exercise Plan"):
         with st.spinner("Generating workout plan..."):
             answer = ask_ai(
                 f"""
@@ -1125,7 +1125,7 @@ Keep it simple and suitable for students.
             f"Exercise Plan ({st.session_state.exercise_query})",
             st.session_state.exercise_result,
             file_name=f"Exercise_Plan_{goal.replace(' ', '_')}.pdf",
-            button_label="📄 Download Workout Plan",
+            button_label="?? Download Workout Plan",
             key="pdf_exercise",
         )
 
@@ -1146,7 +1146,7 @@ elif page == "Calorie Calculator":
         height=120,
     )
 
-    if st.button("🔥 Calculate Calories"):
+    if st.button("?? Calculate Calories"):
         if not food.strip():
             st.warning("Please enter your food items.")
         else:
@@ -1180,10 +1180,10 @@ Clearly state that the values are estimates.
             f"Calorie & Nutrition Breakdown: {st.session_state.calorie_query}",
             st.session_state.calorie_result,
             file_name="Calorie_Report.pdf",
-            button_label="📄 Download Nutrition Breakdown",
+            button_label="?? Download Nutrition Breakdown",
             key="pdf_calorie",
         )
-        st.info("⚠️ AI calorie estimates may be inaccurate because portion sizes vary.")
+        st.info("?? AI calorie estimates may be inaccurate because portion sizes vary.")
 
 
 # =========================================================
@@ -1213,7 +1213,7 @@ elif page == "Sleep Recommendation":
             ["Student", "Working Professional", "Athlete", "Senior Citizen"],
         )
 
-    if st.button("😴 Get Sleep Advice"):
+    if st.button("?? Get Sleep Advice"):
         with st.spinner("Preparing sleep advice..."):
             answer = ask_ai(
                 f"""
@@ -1244,10 +1244,10 @@ Keep the language simple.
             f"Sleep Guidance ({st.session_state.sleep_query})",
             st.session_state.sleep_result,
             file_name="Sleep_Guidance.pdf",
-            button_label="📄 Download Sleep Guide",
+            button_label="?? Download Sleep Guide",
             key="pdf_sleep",
         )
-        st.info("⚠️ These are general wellness suggestions, not a medical diagnosis.")
+        st.info("?? These are general wellness suggestions, not a medical diagnosis.")
 
 
 # =========================================================
@@ -1261,7 +1261,7 @@ elif page == "Medical Report Analyzer":
     )
 
     st.warning(
-        "⚠️ Do not use this tool as a diagnostic system. Medical concerns should be reviewed by a qualified professional."
+        "?? Do not use this tool as a diagnostic system. Medical concerns should be reviewed by a qualified professional."
     )
 
     uploaded_file = st.file_uploader(
@@ -1276,7 +1276,7 @@ elif page == "Medical Report Analyzer":
             use_container_width=True,
         )
 
-        if st.button("🔍 Analyze Image"):
+        if st.button("?? Analyze Image"):
             if client is None:
                 st.error("Gemini API is not configured.")
             else:
@@ -1330,10 +1330,10 @@ Recommend professional medical review when appropriate.
                 f"Medical Report Analysis ({st.session_state.vision_query})",
                 st.session_state.vision_result,
                 file_name="Medical_Report_Analysis.pdf",
-                button_label="📄 Download Medical Analysis Report",
+                button_label="?? Download Medical Analysis Report",
                 key="pdf_vision",
             )
-            st.info("⚠️ This is an educational explanation and is not a medical diagnosis.")
+            st.info("?? This is an educational explanation and is not a medical diagnosis.")
 
 
 # =========================================================
@@ -1366,24 +1366,24 @@ elif page == "Health Dashboard":
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        card("⚖️", "BMI", bmi_value, "Last calculation")
+        card("??", "BMI", bmi_value, "Last calculation")
     with c2:
-        card("💧", "Water", water_value, "Last estimate")
+        card("??", "Water", water_value, "Last estimate")
     with c3:
-        card("😴", "Sleep", sleep_value, "Selected duration")
+        card("??", "Sleep", sleep_value, "Selected duration")
 
     st.markdown("<br>### System Modules", unsafe_allow_html=True)
 
     modules = [
-        ("🤖", "AI Symptom Checker"),
-        ("💊", "Medicine Info"),
-        ("⚖️", "BMI Calculator"),
-        ("💧", "Water Intake"),
-        ("🍎", "Diet Planner"),
-        ("🏃", "Exercise Planner"),
-        ("🔥", "Calorie Calculator"),
-        ("😴", "Sleep Recommendation"),
-        ("📷", "Medical Report Analyzer"),
+        ("??", "AI Symptom Checker"),
+        ("??", "Medicine Info"),
+        ("??", "BMI Calculator"),
+        ("??", "Water Intake"),
+        ("??", "Diet Planner"),
+        ("??", "Exercise Planner"),
+        ("??", "Calorie Calculator"),
+        ("??", "Sleep Recommendation"),
+        ("??", "Medical Report Analyzer"),
     ]
 
     for i in range(0, len(modules), 3):
@@ -1446,7 +1446,7 @@ Use simple language.
 
     if st.session_state.chat_history:
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🗑️ Clear Conversation"):
+        if st.button("??? Clear Conversation"):
             st.session_state.chat_history = []
             st.rerun()
 
@@ -1475,9 +1475,9 @@ elif page == "Settings":
 
     c1, c2 = st.columns(2)
     with c1:
-        card("📄", "PDF", "Ready" if (create_pdf or 'reportlab' in globals()) else "Available")
+        card("??", "PDF", "Ready" if (create_pdf or 'reportlab' in globals()) else "Available")
     with c2:
-        card("⚡", "UI", "Fast Mode", "Lightweight design")
+        card("?", "UI", "Fast Mode", "Lightweight design")
 
 
 # =========================================================
@@ -1492,11 +1492,11 @@ elif page == "About":
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        tool("🐍", "Python", "Application programming language.")
+        tool("??", "Python", "Application programming language.")
     with c2:
-        tool("🌐", "Streamlit", "Web application framework.")
+        tool("??", "Streamlit", "Web application framework.")
     with c3:
-        tool("🤖", "Google Gemini", "AI generation and vision.")
+        tool("??", "Google Gemini", "AI generation and vision.")
 
     st.markdown("<br>### Developer", unsafe_allow_html=True)
 
@@ -1516,7 +1516,7 @@ elif page == "About":
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.warning(
-        "⚠️ HealthMate AI is an educational project and is not a medical diagnosis or treatment system."
+        "?? HealthMate AI is an educational project and is not a medical diagnosis or treatment system."
     )
 
 
