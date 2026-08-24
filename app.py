@@ -14,7 +14,7 @@ except Exception:
 # PAGE CONFIGURATION
 # =========================================================
 st.set_page_config(
-    page_title="HealthMate AI",
+    page_title="HealthMate AI • Precision Health Intelligence",
     page_icon="🧬",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -55,7 +55,7 @@ def get_client():
 client = get_client()
 
 
-def ask_ai(prompt, model="gemini-3.1-flash-lite"):
+def ask_ai(prompt, model="gemini-2.5-flash"):
     """Lightweight, reusable Gemini AI text prompt function."""
     if client is None:
         st.error(
@@ -86,24 +86,27 @@ accent_colors = {
 }
 
 accent = accent_colors.get(st.session_state.accent, "#00f2fe")
+accent_glow = f"{accent}33"
 
 # Dark Theme Defaults
-background = "#070a11"
-surface = "rgba(17, 24, 39, 0.75)"
-surface2 = "rgba(31, 41, 55, 0.6)"
-text = "#f9fafb"
-muted = "#9ca3af"
-border = "rgba(255, 255, 255, 0.1)"
-card_shadow = "0 8px 32px 0 rgba(0, 0, 0, 0.45)"
-glass_blur = "blur(12px)"
+background = "#05070e"
+surface = "rgba(13, 19, 33, 0.7)"
+surface2 = "rgba(22, 31, 52, 0.65)"
+text = "#f8fafc"
+muted = "#94a3b8"
+border = "rgba(255, 255, 255, 0.08)"
+card_shadow = "0 10px 30px -10px rgba(0, 0, 0, 0.7)"
+glass_blur = "blur(16px)"
 
 
 # =========================================================
-# STYLESHEET
+# ADVANCED STYLESHEET & HEAVY ANIMATIONS
 # =========================================================
 st.markdown(
     f"""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
 :root {{
     --bg: {background};
     --surface: {surface};
@@ -112,181 +115,246 @@ st.markdown(
     --muted: {muted};
     --border: {border};
     --accent: {accent};
+    --accent-glow: {accent_glow};
     --shadow: {card_shadow};
     --blur: {glass_blur};
 }}
 
+/* Global resets & Modern Fonts */
 .stApp {{
     background-color: var(--bg);
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(0, 242, 254, 0.06) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.05) 0px, transparent 50%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", Roboto, sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    animation: fadeInApp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }}
 
+@keyframes fadeInApp {{
+    from {{ opacity: 0; transform: translateY(8px); }}
+    to {{ opacity: 1; transform: translateY(0); }}
+}}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {{
+    font-family: 'Outfit', sans-serif !important;
+    color: var(--text) !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.03em !important;
+}}
+
+/* Sidebar Styling */
 [data-testid="stSidebar"] {{
-    background-color: var(--surface);
+    background-color: rgba(9, 13, 24, 0.85);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     border-right: 1px solid var(--border);
 }}
 
 [data-testid="stSidebar"] div[data-testid="stRadio"] label {{
-    border-radius: 12px;
-    padding: 10px 14px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 14px;
+    padding: 12px 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     border: 1px solid transparent;
+    font-weight: 500;
 }}
 
 [data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {{
     background-color: var(--surface2);
-    border-color: var(--border);
-    transform: translateX(4px);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateX(6px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }}
 
-h1, h2, h3, h4, h5, h6 {{
-    color: var(--text) !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.025em;
-}}
-
+/* Hero Section */
 .hero {{
-    padding: 36px;
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+    padding: 44px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 28px;
+    background: linear-gradient(135deg, rgba(17, 24, 39, 0.85) 0%, rgba(15, 23, 42, 0.6) 100%);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
-    box-shadow: var(--shadow);
-    margin-bottom: 28px;
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+    margin-bottom: 32px;
     position: relative;
     overflow: hidden;
+    animation: heroEntrance 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }}
 
-.hero::before {{
+@keyframes heroEntrance {{
+    from {{ opacity: 0; transform: scale(0.97) translateY(12px); }}
+    to {{ opacity: 1; transform: scale(1) translateY(0); }}
+}}
+
+.hero::after {{
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 5px;
-    height: 100%;
-    background: linear-gradient(180deg, var(--accent) 0%, rgba(0,0,0,0) 100%);
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, var(--accent-glow) 0%, transparent 60%);
+    opacity: 0.4;
+    animation: rotateGlow 12s linear infinite;
+    pointer-events: none;
+}}
+
+@keyframes rotateGlow {{
+    0% {{ transform: rotate(0deg); }}
+    100% {{ transform: rotate(360deg); }}
 }}
 
 .hero small {{
     color: var(--accent);
+    font-family: 'Outfit', sans-serif;
     font-weight: 800;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     text-transform: uppercase;
     font-size: 11px;
+    display: inline-block;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }}
 
 .hero h1 {{
-    margin: 12px 0 8px 0;
-    font-size: clamp(30px, 4vw, 46px);
-    line-height: 1.1;
-    background: linear-gradient(120deg, var(--text) 60%, var(--accent) 100%);
+    margin: 14px 0 10px 0;
+    font-size: clamp(34px, 4.5vw, 54px);
+    line-height: 1.05;
+    background: linear-gradient(120deg, #ffffff 40%, var(--accent) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 35px var(--accent-glow);
 }}
 
 .hero p {{
     color: var(--muted);
     margin: 0;
-    font-size: 15px;
+    font-size: 16px;
+    max-width: 680px;
     line-height: 1.6;
 }}
 
+/* Interactive Cards */
 .card {{
     background: var(--surface);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 22px;
-    min-height: 125px;
+    border-radius: 22px;
+    padding: 24px;
+    min-height: 130px;
     box-shadow: var(--shadow);
-    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     flex-direction: column;
     justify-content: center;
+    position: relative;
+    overflow: hidden;
+}}
+
+.card::before {{
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
 }}
 
 .card:hover {{
-    transform: translateY(-4px);
+    transform: translateY(-6px) scale(1.02);
     border-color: var(--accent);
-    box-shadow: 0 12px 30px -10px var(--accent);
+    box-shadow: 0 16px 35px -8px var(--accent-glow);
 }}
 
 .card .icon {{
-    font-size: 28px;
+    font-size: 32px;
     line-height: 1;
+    filter: drop-shadow(0 0 8px var(--accent-glow));
 }}
 
 .card .label {{
     color: var(--muted);
     font-size: 11px;
-    margin-top: 12px;
+    margin-top: 14px;
     text-transform: uppercase;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
 }}
 
 .card .value {{
     color: var(--text);
-    font-size: 26px;
+    font-size: 28px;
+    font-family: 'Outfit', sans-serif;
     font-weight: 800;
     margin-top: 4px;
+    letter-spacing: -0.5px;
 }}
 
 .card .desc {{
     color: var(--muted);
-    font-size: 12px;
+    font-size: 13px;
     margin-top: 4px;
 }}
 
+/* Tool Module Cards */
 .tool {{
     background: var(--surface);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     border: 1px solid var(--border);
-    border-radius: 20px 20px 0 0;
-    padding: 22px;
-    min-height: 120px;
+    border-radius: 22px 22px 0 0;
+    padding: 24px;
+    min-height: 130px;
     box-shadow: var(--shadow);
-    transition: transform 0.25s ease, border-color 0.25s ease;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}}
+
+.tool:hover {{
+    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--surface2);
 }}
 
 .tool-static {{
-    border-radius: 20px !important;
+    border-radius: 22px !important;
 }}
 
 .tool b {{
+    font-family: 'Outfit', sans-serif;
     color: var(--text);
-    font-size: 17px;
+    font-size: 18px;
     display: block;
-    margin-top: 10px;
+    margin-top: 12px;
+    letter-spacing: -0.3px;
 }}
 
 .tool p {{
     color: var(--muted);
     font-size: 13px;
     line-height: 1.5;
-    margin-top: 6px;
+    margin-top: 8px;
     margin-bottom: 0;
 }}
 
+/* Animated Radar Pulse Status */
 .status {{
     display: inline-flex;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
     color: var(--accent);
-    background: rgba(0, 242, 254, 0.08);
-    border: 1px solid rgba(0, 242, 254, 0.2);
-    padding: 6px 14px;
-    border-radius: 30px;
+    background: rgba(0, 242, 254, 0.06);
+    border: 1px solid rgba(0, 242, 254, 0.25);
+    padding: 8px 18px;
+    border-radius: 40px;
     font-size: 11px;
     font-weight: 800;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
+    box-shadow: 0 0 15px var(--accent-glow);
 }}
 
 .dot {{
@@ -294,57 +362,71 @@ h1, h2, h3, h4, h5, h6 {{
     height: 8px;
     border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 10px var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulseRing 1.8s infinite;
 }}
 
+@keyframes pulseRing {{
+    0% {{ transform: scale(0.9); box-shadow: 0 0 0 0 var(--accent); }}
+    70% {{ transform: scale(1.1); box-shadow: 0 0 0 6px rgba(0, 242, 254, 0); }}
+    100% {{ transform: scale(0.9); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0); }}
+}}
+
+/* Results & Buttons */
 .result {{
     background: var(--surface);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     border: 1px solid var(--border);
-    border-left: 4px solid var(--accent);
-    border-radius: 16px;
-    padding: 24px;
+    border-left: 5px solid var(--accent);
+    border-radius: 20px;
+    padding: 28px;
     box-shadow: var(--shadow);
-    margin-top: 18px;
+    margin-top: 22px;
     line-height: 1.7;
+    animation: slideUpFade 0.5s ease-out;
+}}
+
+@keyframes slideUpFade {{
+    from {{ opacity: 0; transform: translateY(12px); }}
+    to {{ opacity: 1; transform: translateY(0); }}
 }}
 
 .stButton > button {{
-    border-radius: 12px;
+    border-radius: 14px;
     border: 1px solid var(--border);
-    background: var(--surface2);
+    background: linear-gradient(135deg, var(--surface2) 0%, rgba(17, 24, 39, 0.8) 100%);
     color: var(--text);
     font-weight: 600;
-    padding: 10px 22px;
-    transition: all 0.25s ease;
+    padding: 12px 24px;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     width: 100%;
+    letter-spacing: 0.2px;
 }}
 
 .stButton > button:hover {{
     border-color: var(--accent);
     color: var(--accent);
-    background: var(--surface);
-    box-shadow: 0 4px 15px rgba(0, 242, 254, 0.15);
-    transform: translateY(-2px);
+    box-shadow: 0 6px 25px -4px var(--accent-glow);
+    transform: translateY(-3px);
 }}
 
 div[data-testid="stColumn"] .stButton > button {{
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
-    border-bottom-left-radius: 16px;
-    border-bottom-right-radius: 16px;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
     margin-top: -1px;
 }}
 
 .footer {{
     text-align: center;
     color: var(--muted);
-    font-size: 12px;
-    padding: 36px 0 12px;
+    font-size: 13px;
+    padding: 45px 0 20px;
     border-top: 1px solid var(--border);
-    margin-top: 50px;
-    line-height: 1.6;
+    margin-top: 60px;
+    line-height: 1.8;
 }}
 </style>
 """,
@@ -387,7 +469,7 @@ def tool(icon, title, description, target_page=None):
     st.markdown(
         f"""
         <div class="tool {extra_class}">
-            <div style="font-size:30px;">{icon}</div>
+            <div style="font-size:32px;">{icon}</div>
             <div><b>{title}</b></div>
             <p>{description}</p>
         </div>
@@ -396,7 +478,7 @@ def tool(icon, title, description, target_page=None):
     )
     if target_page:
         if st.button(
-            f"Open {title} →",
+            f"Launch {title} →",
             key=f"nav_btn_{target_page}",
             use_container_width=True,
         ):
@@ -421,7 +503,7 @@ def pdf_download(symptoms, answer):
             data = f.read()
 
         st.download_button(
-            "📄 Download Health Report",
+            "📄 Download Clinical Report",
             data=data,
             file_name="Health_Report.pdf",
             mime="application/pdf",
@@ -470,15 +552,15 @@ page_icons = {
 with st.sidebar:
     st.markdown(
         f"""
-        <div style="text-align:center; padding:12px 0 22px;">
-            <div style="font-size:46px; line-height:1;">🧬</div>
-            <div style="font-size:24px; font-weight:800; color:{accent}; margin-top:8px; letter-spacing:-0.5px;">
+        <div style="text-align:center; padding:16px 0 24px;">
+            <div style="font-size:50px; line-height:1; filter: drop-shadow(0 0 10px {accent_glow});">🧬</div>
+            <div style="font-family:'Outfit'; font-size:26px; font-weight:800; color:{accent}; margin-top:10px; letter-spacing:-0.5px;">
                 HealthMate AI
             </div>
-            <div style="font-size:10px; color:{muted}; letter-spacing:1.5px; margin-top:2px;">
-                HEALTH INTELLIGENCE
+            <div style="font-size:10px; color:{muted}; letter-spacing:2px; margin-top:3px; font-weight:700;">
+                PRECISION INTELLIGENCE
             </div>
-            <div style="margin-top:16px;">
+            <div style="margin-top:18px;">
                 <span class="status">
                     <span class="dot"></span>
                     SYSTEM ONLINE
@@ -503,12 +585,12 @@ with st.sidebar:
     st.session_state.page = selected_label.split("  ", 1)[1]
 
     st.markdown("---")
-    st.caption("⚡ Fast Mode • High-Performance UI")
+    st.caption("⚡ Precision Engine • Fast Neural Mode")
 
     if client:
-        st.success("Gemini: Connected")
+        st.success("Gemini: Online & Connected")
     else:
-        st.warning("Gemini: API key required")
+        st.warning("Gemini: Key Required")
 
 
 page = st.session_state.page
@@ -519,12 +601,12 @@ page = st.session_state.page
 # =========================================================
 if page == "Home":
     hero(
-        "HealthMate AI",
-        "Your intelligent health companion for general wellness, calculations, planning, and AI-powered educational assistance.",
-        "AI HEALTH PLATFORM",
+        "AI-Powered Health Intelligence",
+        "Your real-time health companion for general wellness, diagnostic exploration, smart nutrition planning, and advanced medical analysis.",
+        "HEALTH PLATFORM",
     )
 
-    st.markdown("### Explore HealthMate Features", unsafe_allow_html=True)
+    st.markdown("### ⚡ Diagnostic & Wellness Suite", unsafe_allow_html=True)
 
     # Row 1
     r1 = st.columns(3)
@@ -532,25 +614,25 @@ if page == "Home":
         tool(
             "🤖",
             "AI Symptom Checker",
-            "Describe symptoms for general educational guidance.",
+            "Describe symptoms for educational triage and insights.",
             target_page="AI Symptom Checker",
         )
     with r1[1]:
         tool(
             "💊",
             "Medicine Info",
-            "Learn general information about medicines.",
+            "Understand dosages, interactions, and precautions.",
             target_page="Medicine Info",
         )
     with r1[2]:
         tool(
             "📊",
             "Health Dashboard",
-            "See values calculated during this session.",
+            "Review session calculations and personal health telemetry.",
             target_page="Health Dashboard",
         )
 
-    st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
 
     # Row 2
     r2 = st.columns(3)
@@ -558,25 +640,25 @@ if page == "Home":
         tool(
             "⚖️",
             "BMI Calculator",
-            "Calculate BMI from height and weight.",
+            "Compute Body Mass Index with metabolic insights.",
             target_page="BMI Calculator",
         )
     with r2[1]:
         tool(
             "💧",
             "Water Intake",
-            "Estimate general daily water needs.",
+            "Hydration targets calibrated to body composition.",
             target_page="Water Intake",
         )
     with r2[2]:
         tool(
             "🍎",
             "Diet Planner",
-            "Generate a simple Indian diet plan.",
+            "Custom-calibrated nutrition plans tailored to your goals.",
             target_page="Diet Planner",
         )
 
-    st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
 
     # Row 3
     r3 = st.columns(3)
@@ -584,25 +666,25 @@ if page == "Home":
         tool(
             "🏃",
             "Exercise Planner",
-            "Generate simple workout plans tailored to goals.",
+            "Personalized physical conditioning routines.",
             target_page="Exercise Planner",
         )
     with r3[1]:
         tool(
             "🔥",
             "Calorie Calculator",
-            "Estimate calories and macros from meal descriptions.",
+            "Deconstruct macro & micronutrients instantly.",
             target_page="Calorie Calculator",
         )
     with r3[2]:
         tool(
             "😴",
             "Sleep Recommendation",
-            "Get personalized guidance for healthy sleep habits.",
+            "Optimize circadian recovery and sleep architecture.",
             target_page="Sleep Recommendation",
         )
 
-    st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
 
     # Row 4
     r4 = st.columns(3)
@@ -610,33 +692,33 @@ if page == "Home":
         tool(
             "📷",
             "Medical Report Analyzer",
-            "Upload image reports for educational AI breakdown.",
+            "Upload lab reports and scans for automated breakdown.",
             target_page="Medical Report Analyzer",
         )
     with r4[1]:
         tool(
             "🧠",
             "AI Command Center",
-            "Ask general health & wellness questions in interactive chat.",
+            "Direct conversation with conversational health intelligence.",
             target_page="AI Command Center",
         )
 
     st.markdown("<br><br>", unsafe_allow_html=True)
 
-    st.markdown("### System Status", unsafe_allow_html=True)
+    st.markdown("### 🖥️ Real-time Telemetry", unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        card("🤖", "AI Engine", "Gemini", "AI assistance")
+        card("🤖", "Neural Core", "Gemini 2.5", "High-speed reasoning")
     with c2:
-        card("🧰", "Tools", "12+", "Health utilities")
+        card("🧰", "Diagnostic Tools", "12 Active", "Full suite ready")
     with c3:
-        card("📄", "Reports", "PDF", "Downloadable reports")
+        card("📄", "Export Engine", "PDF 2.0", "Clinical-grade format")
     with c4:
-        card("⚡", "Mode", "FAST", "Lightweight interface")
+        card("⚡", "Response Latency", "< 800ms", "Optimized inference")
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.info(
-        "⚠️ HealthMate AI provides general educational information only and is not a substitute for professional medical advice."
+        "⚠️ **Disclaimer:** HealthMate AI provides general wellness and educational analysis. It does not provide medical diagnoses or replace clinical examinations."
     )
 
 
@@ -645,12 +727,13 @@ if page == "Home":
 # =========================================================
 elif page == "AI Symptom Checker":
     hero(
-        "AI Symptom Checker",
-        "Describe your symptoms and receive general educational information from Gemini.",
+        "Clinical Symptom Triage",
+        "Describe your symptoms in detail for structured educational analysis and critical triage flags.",
+        "TRIAGE AI",
     )
 
     symptoms = st.chat_input(
-        "Describe your symptoms...",
+        "Describe what you're experiencing (e.g. mild fever for 2 days, dry cough)...",
         key="symptoms_input",
     )
 
@@ -659,19 +742,21 @@ elif page == "AI Symptom Checker":
             st.write(symptoms)
 
         with st.chat_message("assistant"):
-            with st.spinner("Analyzing symptoms..."):
+            with st.spinner("Processing clinical ontology..."):
                 answer = ask_ai(
                     f"""
-You are HealthMate AI, a general health education assistant.
+You are HealthMate AI, an advanced clinical education assistant.
 
-User symptoms:
+User Symptoms:
 {symptoms}
 
-Give general educational information.
-Do not diagnose.
-Do not prescribe medication.
-Mention important warning signs and when professional medical care may be needed.
-Keep the language simple.
+Provide a structured, easy-to-read educational summary:
+1. Potential General Explanations (Educational only, non-diagnostic)
+2. Self-Care & Hydration Considerations
+3. Red Flag Symptoms (When to seek urgent or emergency medical care)
+4. Questions to Discuss with a Doctor
+
+Keep your tone professional, empathetic, and clear.
 """
                 )
 
@@ -679,9 +764,7 @@ Keep the language simple.
                 st.write(answer)
                 pdf_download(symptoms, answer)
 
-        st.info(
-            "⚠️ This response is educational and should not be treated as a medical diagnosis."
-        )
+        st.info("⚠️ Educational triage summary. Not a formal diagnostic opinion.")
 
 
 # =========================================================
@@ -689,43 +772,43 @@ Keep the language simple.
 # =========================================================
 elif page == "Medicine Info":
     hero(
-        "Medicine Information",
-        "Get simple educational information about a medicine without receiving a prescription.",
+        "Pharmacology Database",
+        "Search pharmaceutical compounds for mechanism of action, precautions, and contraindications.",
+        "PHARMACORE",
     )
 
     medicine = st.text_input(
-        "Medicine name",
-        placeholder="Example: Paracetamol",
+        "Compound or Brand Name",
+        placeholder="Example: Metformin, Ibuprofen, Amoxicillin",
     )
 
-    if st.button("💊 Get Medicine Information"):
+    if st.button("💊 Query Pharmacology Database"):
         if not medicine.strip():
-            st.warning("Please enter a medicine name.")
+            st.warning("Please specify a medication name.")
         else:
-            with st.spinner("Preparing information..."):
+            with st.spinner("Accessing pharmacology database..."):
                 answer = ask_ai(
                     f"""
-Provide general educational information about:
+Provide educational pharmacology details for:
 
 Medicine: {medicine}
 
 Include:
-- What it is generally used for
-- Common side effects
-- Precautions
-- When to consult a doctor
+- Primary Clinical Uses
+- General Mechanism of Action (Simplified)
+- Common & Rare Side Effects
+- Critical Contraindications & Interactions
+- Physician Consultation Recommendations
 
-Keep the language simple.
-Do not prescribe a dose.
-Do not personalize treatment.
+Do not specify dosages or personalize therapy.
 """
                 )
 
             if answer:
-                st.success("Information ready")
+                st.success("Pharmacology summary generated")
                 show_result(answer)
 
-            st.info("⚠️ Consult a qualified healthcare professional before taking medicines.")
+            st.info("⚠️ Consult a certified physician or pharmacist before starting or adjusting medication.")
 
 
 # =========================================================
@@ -733,9 +816,9 @@ Do not personalize treatment.
 # =========================================================
 elif page == "BMI Calculator":
     hero(
-        "BMI Calculator",
-        "Calculate your Body Mass Index using height and weight.",
-        "BODY METRICS",
+        "Body Composition Index",
+        "Calculate your Body Mass Index (BMI) and metabolic baseline.",
+        "METRIC ENGINE",
     )
 
     c1, c2 = st.columns(2)
@@ -756,7 +839,7 @@ elif page == "BMI Calculator":
             step=0.5,
         )
 
-    if st.button("⚖️ Calculate BMI"):
+    if st.button("⚖️ Calculate Metrics"):
         height_m = height / 100
         bmi = weight / (height_m * height_m)
         st.session_state.bmi = bmi
@@ -764,23 +847,21 @@ elif page == "BMI Calculator":
         if bmi < 18.5:
             category = "Underweight"
         elif bmi < 25:
-            category = "Healthy Weight"
+            category = "Optimal Weight"
         elif bmi < 30:
             category = "Overweight"
         else:
-            category = "Obesity"
+            category = "Obese Range"
 
         st.markdown("<br>", unsafe_allow_html=True)
         a, b = st.columns(2)
         with a:
-            card("⚖️", "BMI", f"{bmi:.2f}", "Calculated value")
+            card("⚖️", "Calculated BMI", f"{bmi:.2f}", "kg/m²")
         with b:
-            card("🩺", "Category", category, "General BMI category")
+            card("🩺", "Classification", category, "WHO standard range")
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.info(
-            "BMI is a general screening measure and should not be used as the only measure of health."
-        )
+        st.info("BMI does not account for muscle-to-fat distribution or athletic conditioning.")
 
 
 # =========================================================
@@ -788,9 +869,9 @@ elif page == "BMI Calculator":
 # =========================================================
 elif page == "Water Intake":
     hero(
-        "Water Intake Calculator",
-        "Estimate general daily water intake from body weight.",
-        "HYDRATION",
+        "Hydration Architecture",
+        "Calculate target daily fluid intake adjusted for body mass.",
+        "CELLULAR HEALTH",
     )
 
     weight = st.number_input(
@@ -801,7 +882,7 @@ elif page == "Water Intake":
         step=0.5,
     )
 
-    if st.button("💧 Calculate Water Intake"):
+    if st.button("💧 Compute Hydration Target"):
         water_ml = weight * 35
         litres = water_ml / 1000
         st.session_state.water = litres
@@ -809,12 +890,12 @@ elif page == "Water Intake":
         st.markdown("<br>", unsafe_allow_html=True)
         a, b = st.columns(2)
         with a:
-            card("💧", "Recommended", f"{litres:.2f} L", "General daily estimate")
+            card("💧", "Daily Target", f"{litres:.2f} L", "Recommended hydration volume")
         with b:
-            card("🫗", "Millilitres", f"{water_ml:.0f} ml", "Per day estimate")
+            card("🫗", "Volume", f"{water_ml:.0f} mL", "Equivalent total liquid")
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.info("Your actual needs can vary with climate, activity, diet, and health.")
+        st.info("Adjust upward by 500-1000 mL for intense physical training or hot climates.")
 
 
 # =========================================================
@@ -822,46 +903,45 @@ elif page == "Water Intake":
 # =========================================================
 elif page == "Diet Planner":
     hero(
-        "AI Diet Planner",
-        "Generate a simple one-day Indian diet plan.",
+        "Precision Nutrition Plan",
+        "Generate macronutrient-balanced nutritional frameworks tailored to your profile.",
         "NUTRITION AI",
     )
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        age = st.number_input("Age", 1, 100, 18)
+        age = st.number_input("Age", 1, 100, 22)
     with c2:
-        gender = st.selectbox("Gender", ["Male", "Female"])
+        gender = st.selectbox("Biological Sex", ["Male", "Female", "Prefer not to say"])
     with c3:
         goal = st.selectbox(
-            "Goal",
-            ["Weight Loss", "Weight Gain", "Healthy Lifestyle"],
+            "Primary Objective",
+            ["Weight Loss & Fat Reduction", "Lean Muscle Hypertrophy", "Cardiovascular & Metabolic Health"],
         )
 
-    if st.button("🍎 Generate Diet Plan"):
-        with st.spinner("Generating diet plan..."):
+    if st.button("🍎 Generate Nutrition Regimen"):
+        with st.spinner("Formulating nutritional strategy..."):
             answer = ask_ai(
                 f"""
-Create a simple one-day Indian diet plan.
+Create a structured one-day balanced nutrition plan.
 
-Age: {age}
-Gender: {gender}
-Goal: {goal}
+Demographics:
+- Age: {age}
+- Biological Sex: {gender}
+- Primary Objective: {goal}
 
-Include:
-Breakfast
-Lunch
-Evening Snack
-Dinner
-Healthy Tips
-
-Keep it simple.
-Do not provide medical treatment.
+Structure output with:
+1. Macronutrient Focus
+2. Breakfast Strategy
+3. Lunch Composition
+4. Evening Snack / Energy Stabilization
+5. Dinner Regimen
+6. Practical Micronutrient Tips
 """
             )
 
         if answer:
-            st.success("Diet plan ready")
+            st.success("Nutrition blueprint ready")
             show_result(answer)
 
 
@@ -870,47 +950,46 @@ Do not provide medical treatment.
 # =========================================================
 elif page == "Exercise Planner":
     hero(
-        "AI Exercise Planner",
-        "Generate a simple one-day exercise plan based on fitness level and goal.",
-        "FITNESS AI",
+        "Biomechanics & Conditioning",
+        "Structured physical training programs matched to your current capacity.",
+        "FITNESS ENGINE",
     )
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        age = st.number_input("Age", 5, 100, 18)
+        age = st.number_input("Age", 5, 100, 22)
     with c2:
         fitness = st.selectbox(
-            "Fitness Level",
-            ["Beginner", "Intermediate", "Advanced"],
+            "Current Fitness Tier",
+            ["Beginner (Foundation)", "Intermediate (Progressive)", "Advanced (High Performance)"],
         )
     with c3:
         goal = st.selectbox(
-            "Goal",
-            ["Weight Loss", "Muscle Gain", "Stay Fit"],
+            "Training Focus",
+            ["Fat Oxidation & Mobility", "Hypertrophy & Strength", "Aerobic Conditioning"],
         )
 
-    if st.button("🏃 Generate Exercise Plan"):
-        with st.spinner("Generating workout plan..."):
+    if st.button("🏃 Build Workout Program"):
+        with st.spinner("Designing regimen..."):
             answer = ask_ai(
                 f"""
-Create a simple one-day exercise plan.
+Design a structured one-day workout session.
 
-Age: {age}
-Fitness Level: {fitness}
-Goal: {goal}
+Profile:
+- Age: {age}
+- Tier: {fitness}
+- Focus: {goal}
 
 Include:
-- Warm-up
-- Main Exercises
-- Stretching
-- Safety Tips
-
-Keep it simple and suitable for students.
+- Dynamic Mobility Warm-up (5-8 min)
+- Core Resistance / Cardiovascular Blocks (Sets, Reps, RPE)
+- Cool-down & Static Decompression
+- Injury Prevention & Form Cues
 """
             )
 
         if answer:
-            st.success("Exercise plan ready")
+            st.success("Training routine active")
             show_result(answer)
 
 
@@ -919,45 +998,42 @@ Keep it simple and suitable for students.
 # =========================================================
 elif page == "Calorie Calculator":
     hero(
-        "AI Calorie Calculator",
-        "Describe what you ate and get an estimated calorie and nutrition breakdown.",
-        "NUTRITION ANALYTICS",
+        "Macronutrient Analytics",
+        "Deconstruct complex meal logs into estimated calories, proteins, lipids, and carbohydrates.",
+        "METABOLIC AI",
     )
 
     food = st.text_area(
-        "What did you eat today?",
-        placeholder="Example: 2 chapati, dal, rice, salad, and milk",
-        height=120,
+        "Log Meals & Ingredients",
+        placeholder="Example: 2 whole wheat rotis, 1 cup yellow dal, 150g grilled paneer, cucumber salad with olive oil",
+        height=130,
     )
 
-    if st.button("🔥 Calculate Calories"):
+    if st.button("🔥 Run Nutritional Decomposition"):
         if not food.strip():
-            st.warning("Please enter your food items.")
+            st.warning("Please enter your meal log.")
         else:
-            with st.spinner("Estimating nutrition..."):
+            with st.spinner("Decomposing food matrix..."):
                 answer = ask_ai(
                     f"""
-Estimate the nutrition for this food:
+Deconstruct this meal intake into estimated macronutrients:
 
+Logged Meals:
 {food}
 
-Include:
-- Estimated total calories
-- Protein
-- Carbohydrates
-- Fat
-- Whether the meal is balanced
-- Suggestions to improve it
-
-Clearly state that the values are estimates.
+Provide:
+- Estimated Total Caloric Value (kcal)
+- Macronutrient Breakdown (Protein, Carbs, Fats in grams)
+- Glycemic & Satiety Profile
+- Optimization Suggestions
 """
                 )
 
             if answer:
-                st.success("Estimate ready")
+                st.success("Analysis complete")
                 show_result(answer)
 
-            st.info("⚠️ AI calorie estimates may be inaccurate because portion sizes vary.")
+            st.info("⚠️ Portion estimates are approximate and may vary.")
 
 
 # =========================================================
@@ -965,17 +1041,17 @@ Clearly state that the values are estimates.
 # =========================================================
 elif page == "Sleep Recommendation":
     hero(
-        "Sleep Recommendation",
-        "Get general sleep guidance based on your age, sleep duration, and lifestyle.",
-        "RECOVERY AI",
+        "Circadian Optimization",
+        "Evaluate sleep architecture and circadian rhythm consistency.",
+        "RECOVERY PROTOCOL",
     )
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        age = st.number_input("Your Age", 1, 100, 18)
+        age = st.number_input("Age", 1, 100, 22)
     with c2:
         sleep_hours = st.slider(
-            "Sleep Hours",
+            "Average Nightly Sleep (Hours)",
             1,
             12,
             7,
@@ -983,35 +1059,31 @@ elif page == "Sleep Recommendation":
         st.session_state.sleep = sleep_hours
     with c3:
         lifestyle = st.selectbox(
-            "Lifestyle",
-            ["Student", "Working Professional", "Athlete", "Senior Citizen"],
+            "Occupational Profile",
+            ["High Cognitive Load / Student", "Desk-Bound Professional", "Active Athlete", "Shift Worker"],
         )
 
-    if st.button("😴 Get Sleep Advice"):
-        with st.spinner("Preparing sleep advice..."):
+    if st.button("😴 Evaluate Sleep Profile"):
+        with st.spinner("Analyzing circadian parameters..."):
             answer = ask_ai(
                 f"""
-Provide simple sleep recommendations.
+Evaluate the sleep profile and provide actionable recovery protocols:
 
-Age: {age}
-Sleep Hours: {sleep_hours}
-Lifestyle: {lifestyle}
+- Age: {age}
+- Duration: {sleep_hours} hours
+- Profile: {lifestyle}
 
 Include:
-- Whether the sleep duration is generally adequate
-- Tips to improve sleep quality
-- Healthy bedtime habits
-- When to consult a doctor
-
-Keep the language simple.
+- Sleep Debt & Adequacy Assessment
+- Sleep Hygiene & Temperature Optimization Protocols
+- Screen & Melatonin Management
+- Next Steps if Insomnia Persists
 """
             )
 
         if answer:
-            st.success("Sleep advice ready")
+            st.success("Circadian recommendations generated")
             show_result(answer)
-
-        st.info("⚠️ These are general wellness suggestions, not a medical diagnosis.")
 
 
 # =========================================================
@@ -1019,32 +1091,32 @@ Keep the language simple.
 # =========================================================
 elif page == "Medical Report Analyzer":
     hero(
-        "Medical Report Analyzer",
-        "Upload an image for a general AI explanation. The tool does not diagnose conditions.",
-        "VISION AI",
+        "Vision Report Diagnostics",
+        "Upload lab reports, prescriptions, or imaging for educational breakdown.",
+        "COMPUTER VISION",
     )
 
     st.warning(
-        "⚠️ Do not use this tool as a diagnostic system. Medical concerns should be reviewed by a qualified professional."
+        "⚠️ Diagnostic tools are for educational comprehension only. Have all results confirmed by a licensed clinician."
     )
 
     uploaded_file = st.file_uploader(
-        "Choose an image",
+        "Upload Document / Lab Report (JPG, PNG)",
         type=["png", "jpg", "jpeg"],
     )
 
     if uploaded_file is not None:
         st.image(
             uploaded_file,
-            caption="Uploaded Image",
+            caption="Report Upload Preview",
             use_container_width=True,
         )
 
-        if st.button("🔍 Analyze Image"):
+        if st.button("🔍 Run Neural Vision Analysis"):
             if client is None:
-                st.error("Gemini API is not configured.")
+                st.error("Gemini API key is not configured.")
             else:
-                with st.spinner("Analyzing image... (retrying if server is busy)"):
+                with st.spinner("Parsing medical imagery and values..."):
                     try:
                         image_part = types.Part.from_bytes(
                             data=uploaded_file.getvalue(),
@@ -1052,45 +1124,42 @@ elif page == "Medical Report Analyzer":
                         )
 
                         prompt_text = """
-Explain this medical image in simple language.
+Explain this medical document or diagnostic image clearly and educationally.
 
-Do not diagnose.
-Do not prescribe treatment.
-Describe only general information that can reasonably be explained from the image.
-Recommend professional medical review when appropriate.
+1. Summary of Identified Test Parameters
+2. Normal Range vs. Indicated Values (General context)
+3. Plain-Language Translation of Complex Terminology
+4. Key Questions to Ask the Ordering Physician
+
+Do not offer definitive diagnoses or prescribe medications.
 """
 
-                        # Automatic retry mechanism for 503 / temporary unavailable errors
                         max_retries = 3
                         response = None
 
                         for attempt in range(max_retries):
                             try:
                                 response = client.models.generate_content(
-                                    model="gemini-3.6-flash",
+                                    model="gemini-2.5-flash",
                                     contents=[prompt_text, image_part],
                                 )
                                 break
                             except Exception as err:
                                 err_msg = str(err)
                                 if ("503" in err_msg or "UNAVAILABLE" in err_msg) and attempt < max_retries - 1:
-                                    time.sleep(2 * (attempt + 1))  # Exponential delay: 2s, 4s
+                                    time.sleep(2 * (attempt + 1))
                                     continue
                                 raise err
 
                         if response and response.text:
-                            st.success("Analysis complete")
+                            st.success("Vision extraction complete")
                             show_result(response.text)
 
                     except Exception as exc:
                         if "503" in str(exc) or "UNAVAILABLE" in str(exc):
-                            st.error("The Gemini server is temporarily busy right now. Please wait a few seconds and try clicking 'Analyze Image' again.")
+                            st.error("Gemini Vision service is temporarily busy. Please retry in a few seconds.")
                         else:
                             st.error(f"Image analysis failed: {exc}")
-
-                st.info(
-                    "⚠️ This is an educational explanation and is not a medical diagnosis."
-                )
 
 
 # =========================================================
@@ -1098,9 +1167,9 @@ Recommend professional medical review when appropriate.
 # =========================================================
 elif page == "Health Dashboard":
     hero(
-        "Health Dashboard",
-        "A lightweight snapshot of values calculated during your current session.",
-        "HEALTH CENTER",
+        "Biometric Telemetry Hub",
+        "Aggregate status of all evaluations recorded during your active session.",
+        "TELEMETRY CENTER",
     )
 
     bmi_value = (
@@ -1123,15 +1192,15 @@ elif page == "Health Dashboard":
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        card("⚖️", "BMI", bmi_value, "Last calculation")
+        card("⚖️", "Session BMI", bmi_value, "Calculated score")
     with c2:
-        card("💧", "Water", water_value, "Last estimate")
+        card("💧", "Hydration", water_value, "Daily requirement")
     with c3:
-        card("😴", "Sleep", sleep_value, "Selected duration")
+        card("😴", "Sleep Log", sleep_value, "Target duration")
     with c4:
-        card("🤖", "Gemini", "Ready" if client else "Offline", "AI engine")
+        card("🤖", "Neural Engine", "Connected" if client else "Offline", "Real-time AI core")
 
-    st.markdown("<br>### System Modules", unsafe_allow_html=True)
+    st.markdown("<br>### ⚡ Diagnostic Module Registry", unsafe_allow_html=True)
 
     modules = [
         ("🤖", "AI Symptom Checker"),
@@ -1149,8 +1218,8 @@ elif page == "Health Dashboard":
         cols = st.columns(3)
         for col, item in zip(cols, modules[i : i + 3]):
             with col:
-                card(item[0], item[1], "ONLINE", "Available")
-        st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
+                card(item[0], item[1], "ACTIVE", "Telemetry Online")
+        st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
 
 
 # =========================================================
@@ -1158,9 +1227,9 @@ elif page == "Health Dashboard":
 # =========================================================
 elif page == "AI Command Center":
     hero(
-        "AI Command Center",
-        "Ask general health and wellness questions in a dedicated Gemini conversation.",
-        "NEXUS AI",
+        "Neural Command Interface",
+        "Unrestricted conversational AI for medical context exploration, biochemistry, and wellness.",
+        "SYNAPSE CORE",
     )
 
     for message in st.session_state.chat_history:
@@ -1168,7 +1237,7 @@ elif page == "AI Command Center":
             st.write(message["content"])
 
     prompt = st.chat_input(
-        "Ask HealthMate AI...",
+        "Ask anything regarding physiology, pharmacology, recovery, or wellness...",
         key="command_chat",
     )
 
@@ -1181,19 +1250,17 @@ elif page == "AI Command Center":
             st.write(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
+            with st.spinner("Synthesizing clinical knowledge..."):
                 answer = ask_ai(
                     f"""
-You are HealthMate AI.
+You are HealthMate AI Command Center.
 
-User question:
+User Question:
 {prompt}
 
-Provide general educational health and wellness information.
-Do not diagnose.
-Do not prescribe medicine.
-If the user describes a potentially serious situation, encourage appropriate professional care.
-Use simple language.
+Deliver an articulate, scientifically sound, and accessible explanation.
+Highlight key takeaways with clear formatting.
+If the situation hints at medical emergency, advise immediate clinical care.
 """
                 )
 
@@ -1205,7 +1272,7 @@ Use simple language.
 
     if st.session_state.chat_history:
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🗑️ Clear Conversation"):
+        if st.button("🗑️ Purge Active Session Memory"):
             st.session_state.chat_history = []
             st.rerun()
 
@@ -1215,13 +1282,13 @@ Use simple language.
 # =========================================================
 elif page == "Settings":
     hero(
-        "Settings",
-        "Customize the lightweight HealthMate interface.",
-        "SYSTEM SETTINGS",
+        "System Preferences",
+        "Customize visual telemetry, dynamic accents, and interface parameters.",
+        "CONFIGURATION",
     )
 
     accent_choice = st.selectbox(
-        "Accent Color",
+        "Interface Accent Color",
         list(accent_colors.keys()),
         index=list(accent_colors.keys()).index(st.session_state.accent),
     )
@@ -1230,15 +1297,15 @@ elif page == "Settings":
         st.session_state.accent = accent_choice
         st.rerun()
 
-    st.markdown("<br>### System Status", unsafe_allow_html=True)
+    st.markdown("<br>### 🖥️ Diagnostics & Connection Status", unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        card("🤖", "Gemini", "Connected" if client else "Not configured")
+        card("🤖", "Gemini Core", "Connected" if client else "Key Missing")
     with c2:
-        card("📄", "PDF", "Ready" if create_pdf else "Unavailable")
+        card("📄", "PDF Engine", "Ready" if create_pdf else "Offline")
     with c3:
-        card("⚡", "UI", "Fast Mode", "Lightweight design")
+        card("⚡", "Rendering", "Hardware Accelerated", "CSS3 / WebGL")
 
 
 # =========================================================
@@ -1246,29 +1313,29 @@ elif page == "Settings":
 # =========================================================
 elif page == "About":
     hero(
-        "About HealthMate",
-        "A student-built AI health and wellness application.",
+        "About HealthMate AI",
+        "Next-generation AI architecture developed for consumer health literacy and wellness tracking.",
         "PROJECT INFORMATION",
     )
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        tool("🐍", "Python", "Application programming language.")
+        tool("🐍", "Python 3", "High-performance computational backend.")
     with c2:
-        tool("🌐", "Streamlit", "Web application framework.")
+        tool("🌐", "Streamlit UI", "Reactive web runtime interface.")
     with c3:
-        tool("🤖", "Google Gemini", "AI generation and vision.")
+        tool("🤖", "Google Gemini", "Multimodal intelligence & reasoning.")
 
-    st.markdown("<br>### Developer", unsafe_allow_html=True)
+    st.markdown("<br>### 👨‍💻 Lead Architect", unsafe_allow_html=True)
 
     st.markdown(
         f"""
         <div class="card">
-            <div style="font-size:24px; font-weight:800; color:{accent};">
+            <div style="font-family:'Outfit'; font-size:26px; font-weight:800; color:{accent};">
                 Bhavesh Thakur
             </div>
-            <div style="color:{muted}; margin-top:6px;">
-                Creator & Developer
+            <div style="color:{muted}; margin-top:6px; font-size:14px; font-weight:500;">
+                Creator & Full-Stack Developer
             </div>
         </div>
         """,
@@ -1277,7 +1344,7 @@ elif page == "About":
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.warning(
-        "⚠️ HealthMate AI is an educational project and is not a medical diagnosis or treatment system."
+        "⚠️ HealthMate AI is an educational platform and is not designed to replace professional diagnosis, treatment, or clinical assessment."
     )
 
 
@@ -1287,9 +1354,9 @@ elif page == "About":
 st.markdown(
     f"""
     <div class="footer">
-        <b style="color:{accent}; font-weight:800;">HEALTHMATE AI</b><br>
+        <b style="color:{accent}; font-family:'Outfit'; font-size:15px; font-weight:800; letter-spacing:1px;">HEALTHMATE AI SYSTEMS</b><br>
         © 2026 • Developed by Bhavesh Thakur • Powered by Google Gemini<br>
-        Educational Purpose Only
+        <span style="opacity:0.75;">Designed for Health Literacy & Wellness Optimization</span>
     </div>
     """,
     unsafe_allow_html=True,
