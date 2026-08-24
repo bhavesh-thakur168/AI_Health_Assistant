@@ -15,7 +15,7 @@ except Exception:
 # PAGE CONFIGURATION
 # =========================================================
 st.set_page_config(
-    page_title="HealthMate AI",
+    page_title="HealthMate AI - Vibrant Edition",
     page_icon="🧬",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -65,9 +65,17 @@ session_defaults = {
     "page": "Home",
     "chat_history": [],
     "bmi": None,
+    "bmi_category": None,
     "water": None,
     "sleep": None,
-    "accent": "Cyan",
+    "symptom_result": None,
+    "med_result": None,
+    "diet_result": None,
+    "exercise_result": None,
+    "calorie_result": None,
+    "sleep_result": None,
+    "medical_report_result": None,
+    "accent": "Vibrant Aurora",
     "enable_animations": True,
     "anim_speed": "Normal (15s)",
     "font_scale": "Balanced",
@@ -120,14 +128,16 @@ def ask_ai(prompt, model=None):
 # =========================================================
 # THEME & ANIMATION DYNAMIC CONFIGURATION
 # =========================================================
-accent_colors = {
-    "Cyan": "#00f2fe",
-    "Blue": "#38bdf8",
-    "Purple": "#c084fc",
-    "Green": "#34d399",
+accent_themes = {
+    "Vibrant Aurora": {"primary": "#00f2fe", "secondary": "#f43f5e", "gradient": "linear-gradient(135deg, #00f2fe 0%, #a855f7 50%, #ec4899 100%)"},
+    "Neon Emerald": {"primary": "#10b981", "secondary": "#06b6d4", "gradient": "linear-gradient(135deg, #10b981 0%, #3b82f6 50%, #6366f1 100%)"},
+    "Sunset Fire": {"primary": "#f97316", "secondary": "#ec4899", "gradient": "linear-gradient(135deg, #f97316 0%, #e11d48 50%, #9333ea 100%)"},
+    "Electric Purple": {"primary": "#c084fc", "secondary": "#38bdf8", "gradient": "linear-gradient(135deg, #c084fc 0%, #3b82f6 50%, #06b6d4 100%)"},
 }
 
-accent = accent_colors.get(st.session_state.accent, "#00f2fe")
+current_theme = accent_themes.get(st.session_state.accent, accent_themes["Vibrant Aurora"])
+accent = current_theme["primary"]
+theme_gradient = current_theme["gradient"]
 
 # Animation Speed Adjuster
 speed_map = {
@@ -146,18 +156,18 @@ font_sizes = {
 }
 scale = font_sizes.get(st.session_state.font_scale, font_sizes["Balanced"])
 
-background = "#040711"
-surface = "rgba(15, 23, 42, 0.75)"
-surface2 = "rgba(30, 41, 75, 0.7)"
+background = "#030712"
+surface = "rgba(15, 23, 42, 0.8)"
+surface2 = "rgba(30, 41, 75, 0.75)"
 text = "#f8fafc"
 muted = "#94a3b8"
-border = "rgba(0, 242, 254, 0.18)"
+border = "rgba(236, 72, 153, 0.25)"
 card_shadow = "0 12px 35px 0 rgba(0, 0, 0, 0.65)"
 glass_blur = "blur(16px)"
 
 
 # =========================================================
-# STYLESHEET WITH ENHANCED ANIMATIONS & RESPONSIVENESS
+# STYLESHEET WITH COLORFUL VIBRANCE & ANIMATIONS
 # =========================================================
 st.markdown(
     f"""
@@ -172,13 +182,14 @@ st.markdown(
     --muted: {muted};
     --border: {border};
     --accent: {accent};
+    --gradient: {theme_gradient};
     --shadow: {card_shadow};
     --blur: {glass_blur};
 }}
 
-/* Dynamic Mesh Background Animation */
+/* Dynamic Vibrant Background Animation */
 .stApp {{
-    background: linear-gradient(-45deg, #040711, #0a1128, #051833, #110726);
+    background: linear-gradient(-45deg, #030712, #0f172a, #1e1b4b, #31103f, #062033);
     background-size: 400% 400%;
     animation: gradientBG {bg_speed} ease infinite {anim_play_state};
     color: var(--text);
@@ -192,16 +203,16 @@ st.markdown(
     100% {{ background-position: 0% 50%; }}
 }}
 
-/* Glowing Ambient Floating Orbs */
+/* Colorful Floating Glowing Orbs */
 .stApp::before {{
     content: '';
     position: fixed;
-    top: -120px;
-    left: -120px;
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(0, 242, 254, 0.22) 0%, rgba(56, 189, 248, 0.08) 50%, transparent 70%);
-    filter: blur(60px);
+    top: -140px;
+    left: -140px;
+    width: 550px;
+    height: 550px;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.28) 0%, rgba(168, 85, 247, 0.15) 40%, transparent 70%);
+    filter: blur(70px);
     z-index: 0;
     pointer-events: none;
     animation: floatOrb 12s ease-in-out infinite alternate {anim_play_state};
@@ -210,12 +221,12 @@ st.markdown(
 .stApp::after {{
     content: '';
     position: fixed;
-    bottom: -120px;
-    right: -120px;
-    width: 550px;
-    height: 550px;
-    background: radial-gradient(circle, rgba(192, 132, 252, 0.2) 0%, rgba(168, 85, 247, 0.06) 50%, transparent 70%);
-    filter: blur(65px);
+    bottom: -140px;
+    right: -140px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.28) 0%, rgba(16, 185, 129, 0.15) 40%, transparent 70%);
+    filter: blur(75px);
     z-index: 0;
     pointer-events: none;
     animation: floatOrb 16s ease-in-out infinite alternate-reverse {anim_play_state};
@@ -223,19 +234,19 @@ st.markdown(
 
 @keyframes floatOrb {{
     0% {{ transform: translate(0px, 0px) scale(1); }}
-    50% {{ transform: translate(40px, -30px) scale(1.1); }}
-    100% {{ transform: translate(-20px, 20px) scale(0.95); }}
+    50% {{ transform: translate(50px, -40px) scale(1.12); }}
+    100% {{ transform: translate(-30px, 30px) scale(0.92); }}
 }}
 
-/* Functional Page / Card Entrance Animations */
-.hero, .card, .tool, .result, div[data-testid="stForm"] {{
-    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* Card Entrance Keyframes */
+.hero, .card, .tool, .result, div[data-testid="stForm"], .master-card {{
+    animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }}
 
 @keyframes fadeInUp {{
     from {{
         opacity: 0;
-        transform: translateY(18px) scale(0.98);
+        transform: translateY(20px) scale(0.97);
     }}
     to {{
         opacity: 1;
@@ -243,13 +254,13 @@ st.markdown(
     }}
 }}
 
-/* Ultra-Modern Glass Sidebar */
+/* Glass Sidebar */
 [data-testid="stSidebar"] {{
-    background: linear-gradient(180deg, rgba(8, 12, 24, 0.96) 0%, rgba(13, 20, 38, 0.97) 100%) !important;
+    background: linear-gradient(180deg, rgba(10, 15, 30, 0.96) 0%, rgba(20, 10, 35, 0.97) 100%) !important;
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
-    border-right: 1px solid rgba(0, 242, 254, 0.15);
-    box-shadow: 10px 0 35px rgba(0, 0, 0, 0.5);
+    border-right: 1px solid rgba(236, 72, 153, 0.2);
+    box-shadow: 10px 0 35px rgba(0, 0, 0, 0.6);
 }}
 
 [data-testid="stSidebar"] div[data-testid="stRadio"] label {{
@@ -259,14 +270,14 @@ st.markdown(
     cursor: pointer;
     border: 1px solid transparent;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     color: #cbd5e1;
     margin-bottom: 2px;
 }}
 
 [data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {{
-    background: rgba(0, 242, 254, 0.12);
-    border-color: rgba(0, 242, 254, 0.35);
+    background: linear-gradient(90deg, rgba(236, 72, 153, 0.15), rgba(6, 182, 212, 0.15));
+    border-color: rgba(236, 72, 153, 0.4);
     color: #ffffff;
     transform: translateX(4px);
 }}
@@ -279,13 +290,13 @@ h1, h2, h3, h4, h5, h6 {{
 }}
 
 .hero {{
-    padding: 32px 36px;
-    border: 1px solid rgba(0, 242, 254, 0.22);
+    padding: 34px 38px;
+    border: 1px solid rgba(236, 72, 153, 0.3);
     border-radius: 24px;
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(20, 30, 55, 0.8) 100%);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 15, 45, 0.85) 100%);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
-    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.5);
     margin-bottom: 24px;
     position: relative;
     overflow: hidden;
@@ -296,47 +307,47 @@ h1, h2, h3, h4, h5, h6 {{
     position: absolute;
     top: 0;
     left: 0;
-    width: 5px;
+    width: 6px;
     height: 100%;
-    background: linear-gradient(180deg, #00f2fe 0%, #c084fc 100%);
+    background: var(--gradient);
 }}
 
 .hero small {{
-    color: var(--accent);
+    color: #00f2fe;
     font-family: 'Outfit', sans-serif;
     font-weight: 800;
     letter-spacing: 2px;
     text-transform: uppercase;
     font-size: 10.5px;
-    background: rgba(0, 242, 254, 0.12);
-    padding: 5px 12px;
+    background: linear-gradient(90deg, rgba(0, 242, 254, 0.15), rgba(236, 72, 153, 0.15));
+    padding: 6px 14px;
     border-radius: 18px;
-    border: 1px solid rgba(0, 242, 254, 0.3);
+    border: 1px solid rgba(0, 242, 254, 0.35);
     display: inline-block;
 }}
 
 .hero h1 {{
-    margin: 12px 0 8px 0;
+    margin: 14px 0 8px 0;
     font-size: clamp(24px, 4vw, {scale['h1']});
     line-height: 1.15;
-    background: linear-gradient(120deg, #ffffff 30%, #00f2fe 75%, #c084fc 100%);
+    background: var(--gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }}
 
 .hero p {{
-    color: #94a3b8;
+    color: #cbd5e1;
     margin: 0;
     font-size: {scale['hero']};
     line-height: 1.6;
-    max-width: 760px;
+    max-width: 780px;
 }}
 
 .card {{
-    background: linear-gradient(145deg, rgba(17, 26, 48, 0.85) 0%, rgba(11, 17, 33, 0.8) 100%);
+    background: linear-gradient(145deg, rgba(20, 28, 55, 0.85) 0%, rgba(12, 18, 38, 0.8) 100%);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
-    border: 1px solid var(--border);
+    border: 1px solid rgba(236, 72, 153, 0.25);
     border-radius: 20px;
     padding: 20px;
     min-height: 130px;
@@ -349,14 +360,14 @@ h1, h2, h3, h4, h5, h6 {{
 
 .card:hover {{
     transform: translateY(-4px);
-    border-color: var(--accent);
-    box-shadow: 0 12px 30px rgba(0, 242, 254, 0.25);
+    border-color: #ec4899;
+    box-shadow: 0 12px 32px rgba(236, 72, 153, 0.3);
 }}
 
 .card .icon {{
     font-size: 36px !important;
     line-height: 1;
-    filter: drop-shadow(0 0 10px rgba(0, 242, 254, 0.5));
+    filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.6));
 }}
 
 .card .label {{
@@ -377,16 +388,16 @@ h1, h2, h3, h4, h5, h6 {{
 }}
 
 .card .desc {{
-    color: #64748b;
+    color: #38bdf8;
     font-size: 12.5px;
     margin-top: 2px;
 }}
 
 .tool {{
-    background: linear-gradient(145deg, rgba(17, 26, 48, 0.85) 0%, rgba(11, 17, 33, 0.8) 100%);
+    background: linear-gradient(145deg, rgba(20, 28, 55, 0.85) 0%, rgba(12, 18, 38, 0.8) 100%);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
-    border: 1px solid var(--border);
+    border: 1px solid rgba(0, 242, 254, 0.2);
     border-radius: 20px 20px 0 0;
     padding: 20px;
     min-height: 130px;
@@ -395,7 +406,7 @@ h1, h2, h3, h4, h5, h6 {{
 }}
 
 .tool:hover {{
-    border-color: rgba(0, 242, 254, 0.45);
+    border-color: rgba(236, 72, 153, 0.5);
 }}
 
 .tool-static {{
@@ -421,17 +432,17 @@ h1, h2, h3, h4, h5, h6 {{
 .tool-icon {{
     font-size: 38px !important;
     display: inline-block;
-    filter: drop-shadow(0 0 10px rgba(0, 242, 254, 0.45));
+    filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.6));
 }}
 
 .status {{
     display: inline-flex;
     gap: 8px;
     align-items: center;
-    color: var(--accent);
-    background: rgba(0, 242, 254, 0.12);
-    border: 1px solid rgba(0, 242, 254, 0.3);
-    padding: 5px 12px;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    padding: 6px 14px;
     border-radius: 24px;
     font-size: 10.5px;
     font-weight: 800;
@@ -439,26 +450,26 @@ h1, h2, h3, h4, h5, h6 {{
 }}
 
 .dot {{
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent);
+    background: #10b981;
+    box-shadow: 0 0 10px #10b981;
     animation: pulseGlow 1.8s infinite;
 }}
 
 @keyframes pulseGlow {{
     0% {{ transform: scale(0.9); opacity: 0.7; }}
-    50% {{ transform: scale(1.2); opacity: 1; }}
+    50% {{ transform: scale(1.3); opacity: 1; }}
     100% {{ transform: scale(0.9); opacity: 0.7; }}
 }}
 
 .result {{
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(20, 30, 55, 0.85) 100%);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(25, 15, 45, 0.9) 100%);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--accent);
+    border: 1px solid rgba(236, 72, 153, 0.3);
+    border-left: 5px solid #ec4899;
     border-radius: 18px;
     padding: 22px;
     box-shadow: var(--shadow);
@@ -468,12 +479,22 @@ h1, h2, h3, h4, h5, h6 {{
     word-break: break-word;
 }}
 
+.master-card {{
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(168, 85, 247, 0.15) 50%, rgba(6, 182, 212, 0.15) 100%);
+    backdrop-filter: var(--blur);
+    border: 1px solid rgba(236, 72, 153, 0.4);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}}
+
 .stButton > button, div[data-testid="stDownloadButton"] > button {{
     border-radius: 12px;
-    border: 1px solid rgba(0, 242, 254, 0.25);
-    background: linear-gradient(135deg, rgba(20, 32, 60, 0.9) 0%, rgba(13, 20, 38, 0.9) 100%);
+    border: 1px solid rgba(236, 72, 153, 0.35);
+    background: linear-gradient(135deg, rgba(30, 20, 50, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
     color: #ffffff;
-    font-weight: 600;
+    font-weight: 700;
     padding: 12px 20px;
     transition: all 0.25s ease;
     width: 100%;
@@ -481,10 +502,10 @@ h1, h2, h3, h4, h5, h6 {{
 }}
 
 .stButton > button:hover, div[data-testid="stDownloadButton"] > button:hover {{
-    border-color: var(--accent);
-    color: var(--accent);
-    background: linear-gradient(135deg, rgba(28, 45, 85, 0.95) 0%, rgba(18, 28, 55, 0.95) 100%);
-    box-shadow: 0 4px 18px rgba(0, 242, 254, 0.3);
+    border-color: #00f2fe;
+    color: #00f2fe;
+    background: linear-gradient(135deg, rgba(40, 25, 65, 0.95) 0%, rgba(20, 30, 55, 0.95) 100%);
+    box-shadow: 0 4px 20px rgba(0, 242, 254, 0.35);
 }}
 
 div[data-testid="stColumn"] .stButton > button {{
@@ -540,7 +561,7 @@ div[data-testid="stColumn"] .stButton > button {{
 
 
 # =========================================================
-# UI REUSABLE HELPERS
+# UI REUSABLE HELPERS & MASTER PDF GENERATOR
 # =========================================================
 def hero(title, subtitle, kicker="HEALTHMATE AI"):
     st.markdown(
@@ -598,7 +619,7 @@ def show_result(text):
 
 
 def pdf_download(heading_or_input, answer, file_name="Health_Report.pdf", button_label="📄 Download Health Report", key=None):
-    """Reusable PDF generator downloader across all tools."""
+    """Reusable PDF generator downloader across all single tools."""
     if create_pdf is None:
         st.warning("PDF module is unavailable. Keep your report.py in the project folder.")
         return
@@ -619,6 +640,87 @@ def pdf_download(heading_or_input, answer, file_name="Health_Report.pdf", button
         )
     except Exception as exc:
         st.error(f"PDF creation failed: {exc}")
+
+
+def generate_master_session_pdf():
+    """Aggregates all active session inputs, calculated metrics, and AI recommendations into 1 PDF."""
+    if create_pdf is None:
+        st.error("PDF module unavailable.")
+        return None, "PDF module not imported."
+
+    sections = []
+    
+    # Session Calculations
+    metrics_summary = []
+    if st.session_state.bmi:
+        metrics_summary.append(f"• BMI: {st.session_state.bmi:.2f} ({st.session_state.get('bmi_category', 'Calculated')})")
+    if st.session_state.water:
+        metrics_summary.append(f"• Daily Water Target: {st.session_state.water:.2f} Litres")
+    if st.session_state.sleep:
+        metrics_summary.append(f"• Target Sleep Duration: {st.session_state.sleep} Hours")
+    
+    if metrics_summary:
+        sections.append("### SESSION HEALTH METRICS\n" + "\n".join(metrics_summary))
+
+    # Tool Outputs
+    if st.session_state.symptom_result:
+        sections.append(f"### AI SYMPTOM ANALYSIS\n{st.session_state.symptom_result}")
+    if st.session_state.med_result:
+        sections.append(f"### MEDICINE INFORMATION\n{st.session_state.med_result}")
+    if st.session_state.diet_result:
+        sections.append(f"### CUSTOM DIET PLAN\n{st.session_state.diet_result}")
+    if st.session_state.exercise_result:
+        sections.append(f"### CUSTOM EXERCISE PLAN\n{st.session_state.exercise_result}")
+    if st.session_state.calorie_result:
+        sections.append(f"### CALORIE & NUTRITION BREAKDOWN\n{st.session_state.calorie_result}")
+    if st.session_state.sleep_result:
+        sections.append(f"### SLEEP & RECOVERY GUIDANCE\n{st.session_state.sleep_result}")
+    if st.session_state.medical_report_result:
+        sections.append(f"### MEDICAL IMAGE EXPLANATION\n{st.session_state.medical_report_result}")
+
+    if not sections:
+        return None, "No data collected yet. Please use some features first before downloading the master summary!"
+
+    master_content = "\n\n" + ("\n\n" + "="*40 + "\n\n").join(sections)
+    heading = "HEALTHMATE AI - MASTER HEALTH & WELLNESS SUMMARY"
+    
+    try:
+        pdf_path = create_pdf(heading, master_content)
+        with open(pdf_path, "rb") as f:
+            pdf_data = f.read()
+        return pdf_data, None
+    except Exception as e:
+        return None, str(e)
+
+
+def render_master_download_banner(key_suffix="default"):
+    """Renders a 1-Click Master PDF Download Box."""
+    st.markdown(
+        """
+        <div class="master-card">
+            <div style="font-family:'Outfit'; font-size:22px; font-weight:800; color:#00f2fe;">
+                🚀 1-Click Master Session PDF Export
+            </div>
+            <div style="color:#cbd5e1; font-size:13.5px; margin-top:4px;">
+                Download all your calculated metrics, diet plans, workout schedules, symptom checks, and AI advice in a single consolidated report.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    pdf_bytes, err = generate_master_session_pdf()
+    if err:
+        st.info(f"💡 {err}")
+    else:
+        st.download_button(
+            "📥 Download Complete Master Health Summary (1-Click PDF)",
+            data=pdf_bytes,
+            file_name="HealthMate_Master_Summary.pdf",
+            mime="application/pdf",
+            key=f"btn_master_dl_{key_suffix}",
+            use_container_width=True,
+        )
 
 
 # =========================================================
@@ -662,12 +764,12 @@ with st.sidebar:
     st.markdown(
         f"""
         <div style="text-align:center; padding:10px 0 16px;">
-            <div style="font-size:44px; line-height:1; filter: drop-shadow(0 0 12px rgba(0,242,254,0.6));">🧬</div>
-            <div style="font-family:'Outfit'; font-size:22px; font-weight:800; color:{accent}; margin-top:6px; letter-spacing:-0.5px;">
+            <div style="font-size:46px; line-height:1; filter: drop-shadow(0 0 16px rgba(236,72,153,0.7));">🧬</div>
+            <div style="font-family:'Outfit'; font-size:22px; font-weight:800; background:var(--gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-top:6px;">
                 HealthMate AI
             </div>
             <div style="font-size:9.5px; color:{muted}; letter-spacing:2px; margin-top:2px; font-weight:700;">
-                HEALTH INTELLIGENCE
+                VIBRANT HEALTH SUITE
             </div>
             <div style="margin-top:12px;">
                 <span class="status">
@@ -703,9 +805,11 @@ page = st.session_state.page
 if page == "Home":
     hero(
         "HealthMate AI",
-        "Your intelligent health companion for general wellness, calculations, planning, and AI-powered educational assistance.",
+        "Your intelligent multi-color health companion for general wellness, calculations, planning, and AI assistance.",
         "AI HEALTH PLATFORM",
     )
+
+    render_master_download_banner("home")
 
     st.markdown("### Explore HealthMate Features", unsafe_allow_html=True)
 
@@ -728,7 +832,7 @@ if page == "Home":
         tool(
             "📊",
             "Health Dashboard",
-            "See values calculated during this session.",
+            "See session data & download 1-Click Master PDF.",
             target_page="Health Dashboard",
         )
 
@@ -796,18 +900,18 @@ if page == "Home":
         tool(
             "🧠",
             "AI Command Center",
-            "Ask general health & wellness questions in interactive chat.",
+            "Ask general health questions in interactive chat.",
             target_page="AI Command Center",
         )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    st.markdown("### System Status", unsafe_allow_html=True)
+    st.markdown("### System Metrics", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
         card("🧰", "Tools", "12+", "Health utilities")
     with c2:
-        card("📄", "Reports", "PDF", "Downloadable reports")
+        card("📄", "1-Click PDF", "Master Export", "Aggregates all feature outputs")
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.info(
@@ -851,6 +955,7 @@ Keep the language simple.
                 )
 
             if answer:
+                st.session_state.symptom_result = answer
                 st.write(answer)
                 pdf_download(
                     symptoms,
@@ -903,6 +1008,7 @@ Do not personalize treatment.
                 )
 
             if answer:
+                st.session_state.med_result = answer
                 st.success("Information ready")
                 show_result(answer)
                 pdf_download(
@@ -974,6 +1080,8 @@ elif page == "BMI Calculator":
                 category = "Overweight"
             else:
                 category = "Obesity"
+
+            st.session_state.bmi_category = category
 
             st.markdown("<br>", unsafe_allow_html=True)
             a, b = st.columns(2)
@@ -1066,6 +1174,7 @@ Do not provide medical treatment.
             )
 
         if answer:
+            st.session_state.diet_result = answer
             st.success("Diet plan ready")
             show_result(answer)
             pdf_download(
@@ -1122,6 +1231,7 @@ Keep it simple and suitable for students.
             )
 
         if answer:
+            st.session_state.exercise_result = answer
             st.success("Exercise plan ready")
             show_result(answer)
             pdf_download(
@@ -1173,6 +1283,7 @@ Clearly state that the values are estimates.
                 )
 
             if answer:
+                st.session_state.calorie_result = answer
                 st.success("Estimate ready")
                 show_result(answer)
                 pdf_download(
@@ -1234,6 +1345,7 @@ Keep the language simple.
             )
 
         if answer:
+            st.session_state.sleep_result = answer
             st.success("Sleep advice ready")
             show_result(answer)
             pdf_download(
@@ -1311,6 +1423,7 @@ Recommend professional medical review when appropriate.
                                 raise err
 
                         if response and response.text:
+                            st.session_state.medical_report_result = response.text
                             st.success("Analysis complete")
                             show_result(response.text)
                             pdf_download(
@@ -1337,10 +1450,12 @@ Recommend professional medical review when appropriate.
 # =========================================================
 elif page == "Health Dashboard":
     hero(
-        "Health Dashboard",
-        "A lightweight snapshot of values calculated during your current session.",
-        "HEALTH CENTER",
+        "Health Dashboard & Master Export",
+        "A multi-color overview of all values calculated during your active session.",
+        "SESSION HEALTH CENTER",
     )
+
+    render_master_download_banner("dashboard")
 
     bmi_value = (
         f"{st.session_state.bmi:.2f}"
@@ -1362,31 +1477,31 @@ elif page == "Health Dashboard":
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        card("⚖️", "BMI", bmi_value, "Last calculation")
+        card("⚖️", "BMI", bmi_value, st.session_state.get('bmi_category', 'Calculated'))
     with c2:
-        card("💧", "Water", water_value, "Last estimate")
+        card("💧", "Water Target", water_value, "Daily target")
     with c3:
-        card("😴", "Sleep", sleep_value, "Selected duration")
+        card("😴", "Sleep Target", sleep_value, "Selected duration")
 
-    st.markdown("<br>### System Modules", unsafe_allow_html=True)
+    st.markdown("<br>### Session Feature Status", unsafe_allow_html=True)
 
     modules = [
-        ("🤖", "AI Symptom Checker"),
-        ("💊", "Medicine Info"),
-        ("⚖️", "BMI Calculator"),
-        ("💧", "Water Intake"),
-        ("🍎", "Diet Planner"),
-        ("🏃", "Exercise Planner"),
-        ("🔥", "Calorie Calculator"),
-        ("😴", "Sleep Recommendation"),
-        ("📷", "Medical Report Analyzer"),
+        ("🤖", "AI Symptom Checker", "COMPLETED" if st.session_state.symptom_result else "NOT STARTED"),
+        ("💊", "Medicine Info", "COMPLETED" if st.session_state.med_result else "NOT STARTED"),
+        ("⚖️", "BMI Calculator", "COMPLETED" if st.session_state.bmi else "NOT STARTED"),
+        ("💧", "Water Intake", "COMPLETED" if st.session_state.water else "NOT STARTED"),
+        ("🍎", "Diet Planner", "COMPLETED" if st.session_state.diet_result else "NOT STARTED"),
+        ("🏃", "Exercise Planner", "COMPLETED" if st.session_state.exercise_result else "NOT STARTED"),
+        ("🔥", "Calorie Calculator", "COMPLETED" if st.session_state.calorie_result else "NOT STARTED"),
+        ("😴", "Sleep Recommendation", "COMPLETED" if st.session_state.sleep_result else "NOT STARTED"),
+        ("📷", "Medical Report Analyzer", "COMPLETED" if st.session_state.medical_report_result else "NOT STARTED"),
     ]
 
     for i in range(0, len(modules), 3):
         cols = st.columns(3)
         for col, item in zip(cols, modules[i : i + 3]):
             with col:
-                card(item[0], item[1], "ONLINE", "Available")
+                card(item[0], item[1], item[2], "Ready for Master PDF" if item[2] == "COMPLETED" else "Optional")
         st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
 
 
@@ -1460,16 +1575,16 @@ elif page == "Settings":
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("### 🎨 Visual & Motion Customization", unsafe_allow_html=True)
+        st.markdown("### 🎨 Multi-Color Theme & Motion", unsafe_allow_html=True)
         
-        # Accent Color
-        accent_choice = st.selectbox(
-            "Neon Accent Color",
-            list(accent_colors.keys()),
-            index=list(accent_colors.keys()).index(st.session_state.accent),
+        # Accent Theme Selection
+        theme_choice = st.selectbox(
+            "Visual Accent Theme Palette",
+            list(accent_themes.keys()),
+            index=list(accent_themes.keys()).index(st.session_state.accent),
         )
-        if accent_choice != st.session_state.accent:
-            st.session_state.accent = accent_choice
+        if theme_choice != st.session_state.accent:
+            st.session_state.accent = theme_choice
             st.rerun()
 
         # Background Animations Toggle
@@ -1502,7 +1617,7 @@ elif page == "Settings":
             st.rerun()
 
     with col2:
-        st.markdown("### 🧠 AI Engine & Data Management", unsafe_allow_html=True)
+        st.markdown("### 🧠 AI Engine & Master Export", unsafe_allow_html=True)
         
         # AI Engine Selection
         model_choice = st.selectbox(
@@ -1521,21 +1636,22 @@ elif page == "Settings":
         # Clear Cache & Reset Button
         if st.button("🧹 Purge Session Memory & Reset State"):
             st.session_state.bmi = None
+            st.session_state.bmi_category = None
             st.session_state.water = None
             st.session_state.sleep = None
+            st.session_state.symptom_result = None
+            st.session_state.med_result = None
+            st.session_state.diet_result = None
+            st.session_state.exercise_result = None
+            st.session_state.calorie_result = None
+            st.session_state.sleep_result = None
+            st.session_state.medical_report_result = None
             st.session_state.chat_history = []
             st.success("Session memory cleared successfully!")
             st.rerun()
 
-    st.markdown("<br>### System Architecture", unsafe_allow_html=True)
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        card("📄", "PDF Module", "Ready" if create_pdf else "Unavailable")
-    with c2:
-        card("⚡", "Rendering", "Hardware Accel", "60 FPS CSS Keyframes")
-    with c3:
-        card("🤖", "AI Engine", st.session_state.ai_model, "Active Model")
+    st.markdown("<br>", unsafe_allow_html=True)
+    render_master_download_banner("settings")
 
 
 # =========================================================
@@ -1544,7 +1660,7 @@ elif page == "Settings":
 elif page == "About":
     hero(
         "About HealthMate",
-        "A student-built AI health and wellness application.",
+        "A student-built multi-color AI health and wellness application.",
         "PROJECT INFORMATION",
     )
 
@@ -1561,7 +1677,7 @@ elif page == "About":
     st.markdown(
         f"""
         <div class="card">
-            <div style="font-family:'Outfit'; font-size:26px; font-weight:800; color:{accent};">
+            <div style="font-family:'Outfit'; font-size:26px; font-weight:800; background:var(--gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">
                 Bhavesh Thakur
             </div>
             <div style="color:{muted}; margin-top:6px; font-size:14px; font-weight:500;">
@@ -1584,7 +1700,7 @@ elif page == "About":
 st.markdown(
     f"""
     <div class="footer">
-        <b style="color:{accent}; font-family:'Outfit'; font-size:15px; font-weight:800; letter-spacing:1px;">HEALTHMATE AI</b><br>
+        <b style="background:var(--gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-family:'Outfit'; font-size:15px; font-weight:800; letter-spacing:1px;">HEALTHMATE AI</b><br>
         © 2026 • Developed by Bhavesh Thakur • Powered by Google Gemini<br>
         Educational Purpose Only
     </div>
