@@ -76,30 +76,31 @@ def ask_ai(prompt, model="gemini-2.5-flash"):
 
 
 # =========================================================
-# THEME CONFIGURATION
+# THEME CONFIGURATION (VIBRANT MEDICAL-TECH PALETTE)
 # =========================================================
 accent_colors = {
-    "Cyan": "#00f2fe",
+    "Cyan": "#00d4fe",
     "Blue": "#3b82f6",
     "Purple": "#a855f7",
     "Green": "#10b981",
 }
 
-accent = accent_colors.get(st.session_state.accent, "#00f2fe")
+accent = accent_colors.get(st.session_state.accent, "#00d4fe")
 
-# Colorful Dark Theme Defaults
-background = "#080c16"
-surface = "rgba(15, 23, 42, 0.75)"
-surface2 = "rgba(30, 41, 59, 0.7)"
-text = "#f9fafb"
-muted = "#a5b4fc"
+# Rich Dual-Tone Slate/Teal/Navy Theme Defaults (Not pitch black)
+background = "#0d1527"
+sidebar_bg = "#09101f"
+surface = "rgba(19, 32, 58, 0.78)"
+surface2 = "rgba(28, 45, 80, 0.82)"
+text = "#f8fafc"
+muted = "#94a3b8"
 border = "rgba(255, 255, 255, 0.12)"
-card_shadow = "0 10px 32px 0 rgba(0, 0, 0, 0.55)"
-glass_blur = "blur(16px)"
+card_shadow = "0 12px 36px 0 rgba(4, 10, 24, 0.55)"
+glass_blur = "blur(18px)"
 
 
 # =========================================================
-# STYLESHEET WITH HEAVY ANIMATIONS & ENLARGED ICONS
+# STYLESHEET
 # =========================================================
 st.markdown(
     f"""
@@ -108,6 +109,7 @@ st.markdown(
 
 :root {{
     --bg: {background};
+    --sidebar-bg: {sidebar_bg};
     --surface: {surface};
     --surface2: {surface2};
     --text: {text};
@@ -121,45 +123,47 @@ st.markdown(
 .stApp {{
     background-color: var(--bg);
     background-image: 
-        radial-gradient(at 0% 0%, rgba(0, 242, 254, 0.12) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.12) 0px, transparent 50%),
-        radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 60%),
-        radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
-        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 35px 35px, 35px 35px;
+        radial-gradient(at 0% 0%, rgba(0, 212, 254, 0.18) 0px, transparent 45%),
+        radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.18) 0px, transparent 45%),
+        radial-gradient(at 50% 50%, rgba(14, 165, 233, 0.08) 0px, transparent 55%),
+        radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.16) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.12) 0px, transparent 50%);
     color: var(--text);
     font-family: 'Plus Jakarta Sans', sans-serif;
-    animation: fadeInApp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: fadeInApp 0.6s ease-out;
 }}
 
 @keyframes fadeInApp {{
-    from {{ opacity: 0; transform: translateY(10px); }}
+    from {{ opacity: 0; transform: translateY(6px); }}
     to {{ opacity: 1; transform: translateY(0); }}
 }}
 
+/* Professional Modern Sidebar */
 [data-testid="stSidebar"] {{
-    background-color: rgba(10, 15, 29, 0.85);
+    background: linear-gradient(180deg, #09101f 0%, #0c172e 100%) !important;
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
-    border-right: 1px solid var(--border);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.35);
 }}
 
 [data-testid="stSidebar"] div[data-testid="stRadio"] label {{
-    border-radius: 14px;
-    padding: 12px 16px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 12px;
+    padding: 10px 14px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     border: 1px solid transparent;
-    font-size: 15px;
+    font-size: 14.5px;
     font-weight: 500;
+    color: #cbd5e1;
+    margin-bottom: 2px;
 }}
 
 [data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {{
-    background: linear-gradient(90deg, var(--surface2) 0%, rgba(0, 242, 254, 0.08) 100%);
-    border-color: rgba(0, 242, 254, 0.3);
-    transform: translateX(6px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(90deg, rgba(0, 212, 254, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%);
+    border-color: rgba(0, 212, 254, 0.3);
+    color: #ffffff;
+    transform: translateX(5px);
 }}
 
 h1, h2, h3, h4, h5, h6 {{
@@ -170,22 +174,16 @@ h1, h2, h3, h4, h5, h6 {{
 }}
 
 .hero {{
-    padding: 40px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 26px;
-    background: linear-gradient(135deg, rgba(20, 28, 50, 0.9) 0%, rgba(15, 23, 42, 0.75) 50%, rgba(30, 41, 59, 0.85) 100%);
+    padding: 38px 42px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(22, 38, 70, 0.85) 0%, rgba(14, 25, 48, 0.9) 100%);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     box-shadow: var(--shadow);
-    margin-bottom: 30px;
+    margin-bottom: 28px;
     position: relative;
     overflow: hidden;
-    animation: heroFloat 1s cubic-bezier(0.16, 1, 0.3, 1);
-}}
-
-@keyframes heroFloat {{
-    from {{ opacity: 0; transform: scale(0.98) translateY(14px); }}
-    to {{ opacity: 1; transform: scale(1) translateY(0); }}
 }}
 
 .hero::before {{
@@ -195,7 +193,7 @@ h1, h2, h3, h4, h5, h6 {{
     left: 0;
     width: 6px;
     height: 100%;
-    background: linear-gradient(180deg, #00f2fe 0%, #a855f7 50%, #10b981 100%);
+    background: linear-gradient(180deg, var(--accent) 0%, #6366f1 100%);
 }}
 
 .hero small {{
@@ -205,68 +203,66 @@ h1, h2, h3, h4, h5, h6 {{
     letter-spacing: 2.5px;
     text-transform: uppercase;
     font-size: 11px;
-    background: rgba(0, 242, 254, 0.1);
+    background: rgba(0, 212, 254, 0.12);
     padding: 5px 12px;
     border-radius: 20px;
-    border: 1px solid rgba(0, 242, 254, 0.25);
+    border: 1px solid rgba(0, 212, 254, 0.25);
     display: inline-block;
 }}
 
 .hero h1 {{
     margin: 14px 0 10px 0;
-    font-size: clamp(32px, 4.5vw, 50px);
+    font-size: clamp(30px, 4vw, 48px);
     line-height: 1.1;
-    background: linear-gradient(120deg, #ffffff 30%, #00f2fe 70%, #a855f7 100%);
+    background: linear-gradient(120deg, #ffffff 40%, var(--accent) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 25px rgba(0, 242, 254, 0.25));
 }}
 
 .hero p {{
-    color: #cbd5e1;
+    color: #94a3b8;
     margin: 0;
-    font-size: 16px;
+    font-size: 15.5px;
     line-height: 1.6;
     max-width: 750px;
 }}
 
 .card {{
-    background: linear-gradient(145deg, rgba(20, 29, 52, 0.8) 0%, rgba(13, 19, 36, 0.6) 100%);
+    background: linear-gradient(145deg, rgba(23, 37, 68, 0.85) 0%, rgba(16, 28, 52, 0.75) 100%);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     border: 1px solid var(--border);
-    border-radius: 22px;
+    border-radius: 20px;
     padding: 24px;
-    min-height: 145px;
+    min-height: 140px;
     box-shadow: var(--shadow);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     flex-direction: column;
     justify-content: center;
     position: relative;
-    overflow: hidden;
 }}
 
 .card:hover {{
-    transform: translateY(-6px) scale(1.02);
+    transform: translateY(-5px);
     border-color: var(--accent);
-    box-shadow: 0 14px 35px -5px rgba(0, 242, 254, 0.25);
+    box-shadow: 0 12px 30px -5px rgba(0, 212, 254, 0.3);
 }}
 
 .card .icon {{
     font-size: 42px !important;
     line-height: 1;
-    filter: drop-shadow(0 0 10px rgba(0, 242, 254, 0.35));
+    filter: drop-shadow(0 0 10px rgba(0, 212, 254, 0.35));
     transition: transform 0.3s ease;
 }}
 
 .card:hover .icon {{
-    transform: scale(1.15) rotate(4deg);
+    transform: scale(1.12);
 }}
 
 .card .label {{
     color: #94a3b8;
-    font-size: 12px;
+    font-size: 11.5px;
     margin-top: 14px;
     text-transform: uppercase;
     font-weight: 700;
@@ -276,7 +272,7 @@ h1, h2, h3, h4, h5, h6 {{
 .card .value {{
     color: var(--text);
     font-family: 'Outfit', sans-serif;
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 800;
     margin-top: 4px;
     letter-spacing: -0.5px;
@@ -284,35 +280,35 @@ h1, h2, h3, h4, h5, h6 {{
 
 .card .desc {{
     color: #94a3b8;
-    font-size: 13px;
+    font-size: 12.5px;
     margin-top: 4px;
 }}
 
 .tool {{
-    background: linear-gradient(145deg, rgba(20, 29, 52, 0.8) 0%, rgba(13, 19, 36, 0.6) 100%);
+    background: linear-gradient(145deg, rgba(23, 37, 68, 0.85) 0%, rgba(16, 28, 52, 0.75) 100%);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     border: 1px solid var(--border);
-    border-radius: 22px 22px 0 0;
+    border-radius: 20px 20px 0 0;
     padding: 24px;
-    min-height: 145px;
+    min-height: 140px;
     box-shadow: var(--shadow);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }}
 
 .tool:hover {{
-    border-color: rgba(0, 242, 254, 0.3);
-    background: linear-gradient(145deg, rgba(30, 41, 69, 0.85) 0%, rgba(17, 24, 45, 0.7) 100%);
+    border-color: rgba(0, 212, 254, 0.35);
+    background: linear-gradient(145deg, rgba(30, 48, 86, 0.9) 0%, rgba(20, 34, 62, 0.85) 100%);
 }}
 
 .tool-static {{
-    border-radius: 22px !important;
+    border-radius: 20px !important;
 }}
 
 .tool b {{
     font-family: 'Outfit', sans-serif;
     color: var(--text);
-    font-size: 19px;
+    font-size: 18px;
     display: block;
     margin-top: 12px;
     letter-spacing: -0.3px;
@@ -329,99 +325,92 @@ h1, h2, h3, h4, h5, h6 {{
 .tool-icon {{
     font-size: 44px !important;
     display: inline-block;
-    filter: drop-shadow(0 0 12px rgba(0, 242, 254, 0.3));
+    filter: drop-shadow(0 0 10px rgba(0, 212, 254, 0.3));
     transition: transform 0.3s ease;
 }}
 
 .tool:hover .tool-icon {{
-    transform: scale(1.15) translateY(-3px);
+    transform: scale(1.12);
 }}
 
 .status {{
     display: inline-flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     color: var(--accent);
-    background: rgba(0, 242, 254, 0.08);
-    border: 1px solid rgba(0, 242, 254, 0.3);
-    padding: 8px 18px;
+    background: rgba(0, 212, 254, 0.1);
+    border: 1px solid rgba(0, 212, 254, 0.3);
+    padding: 6px 14px;
     border-radius: 30px;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 800;
     letter-spacing: 1px;
-    box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
+    box-shadow: 0 0 12px rgba(0, 212, 254, 0.15);
 }}
 
 .dot {{
-    width: 9px;
-    height: 9px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 10px var(--accent);
+    box-shadow: 0 0 8px var(--accent);
     animation: pulseGlow 1.8s infinite;
 }}
 
 @keyframes pulseGlow {{
-    0% {{ transform: scale(0.9); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.7); }}
-    70% {{ transform: scale(1.15); box-shadow: 0 0 0 8px rgba(0, 242, 254, 0); }}
-    100% {{ transform: scale(0.9); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0); }}
+    0% {{ transform: scale(0.9); box-shadow: 0 0 0 0 rgba(0, 212, 254, 0.7); }}
+    70% {{ transform: scale(1.15); box-shadow: 0 0 0 6px rgba(0, 212, 254, 0); }}
+    100% {{ transform: scale(0.9); box-shadow: 0 0 0 0 rgba(0, 212, 254, 0); }}
 }}
 
 .result {{
-    background: linear-gradient(135deg, rgba(17, 24, 39, 0.9) 0%, rgba(26, 36, 61, 0.8) 100%);
+    background: linear-gradient(135deg, rgba(20, 33, 60, 0.9) 0%, rgba(27, 43, 76, 0.8) 100%);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
     border: 1px solid var(--border);
     border-left: 5px solid var(--accent);
-    border-radius: 20px;
-    padding: 26px;
+    border-radius: 18px;
+    padding: 24px;
     box-shadow: var(--shadow);
     margin-top: 20px;
     line-height: 1.7;
-    animation: slideUp 0.4s ease;
-}}
-
-@keyframes slideUp {{
-    from {{ opacity: 0; transform: translateY(10px); }}
-    to {{ opacity: 1; transform: translateY(0); }}
 }}
 
 .stButton > button {{
-    border-radius: 14px;
+    border-radius: 12px;
     border: 1px solid var(--border);
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
+    background: linear-gradient(135deg, rgba(31, 50, 88, 0.9) 0%, rgba(20, 34, 62, 0.9) 100%);
     color: var(--text);
     font-weight: 600;
-    padding: 12px 24px;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 11px 22px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     width: 100%;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }}
 
 .stButton > button:hover {{
     border-color: var(--accent);
     color: var(--accent);
-    background: linear-gradient(135deg, rgba(30, 41, 59, 1) 0%, rgba(20, 30, 55, 1) 100%);
-    box-shadow: 0 6px 20px rgba(0, 242, 254, 0.25);
+    background: linear-gradient(135deg, rgba(38, 62, 110, 1) 0%, rgba(25, 42, 78, 1) 100%);
+    box-shadow: 0 6px 18px rgba(0, 212, 254, 0.25);
     transform: translateY(-2px);
 }}
 
 div[data-testid="stColumn"] .stButton > button {{
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
-    border-bottom-left-radius: 20px;
-    border-bottom-right-radius: 20px;
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
     margin-top: -1px;
 }}
 
 .footer {{
     text-align: center;
     color: #94a3b8;
-    font-size: 13px;
-    padding: 40px 0 16px;
+    font-size: 12.5px;
+    padding: 36px 0 16px;
     border-top: 1px solid var(--border);
-    margin-top: 60px;
-    line-height: 1.8;
+    margin-top: 50px;
+    line-height: 1.7;
 }}
 </style>
 """,
@@ -547,15 +536,15 @@ page_icons = {
 with st.sidebar:
     st.markdown(
         f"""
-        <div style="text-align:center; padding:12px 0 24px;">
-            <div style="font-size:54px; line-height:1; filter: drop-shadow(0 0 12px rgba(0,242,254,0.4));">🧬</div>
-            <div style="font-family:'Outfit'; font-size:26px; font-weight:800; color:{accent}; margin-top:10px; letter-spacing:-0.5px;">
+        <div style="text-align:center; padding:14px 0 20px;">
+            <div style="font-size:50px; line-height:1; filter: drop-shadow(0 0 10px rgba(0,212,254,0.4));">🧬</div>
+            <div style="font-family:'Outfit'; font-size:24px; font-weight:800; color:{accent}; margin-top:8px; letter-spacing:-0.5px;">
                 HealthMate AI
             </div>
             <div style="font-size:10px; color:{muted}; letter-spacing:2px; margin-top:2px; font-weight:700;">
                 HEALTH INTELLIGENCE
             </div>
-            <div style="margin-top:16px;">
+            <div style="margin-top:14px;">
                 <span class="status">
                     <span class="dot"></span>
                     SYSTEM ONLINE
@@ -578,14 +567,6 @@ with st.sidebar:
     )
 
     st.session_state.page = selected_label.split("  ", 1)[1]
-
-    st.markdown("---")
-    st.caption("⚡ Fast Mode • High-Performance UI")
-
-    if client:
-        st.success("Gemini: Connected")
-    else:
-        st.warning("Gemini: API key required")
 
 
 page = st.session_state.page
@@ -627,7 +608,7 @@ if page == "Home":
             target_page="Health Dashboard",
         )
 
-    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
 
     # Row 2
     r2 = st.columns(3)
@@ -653,7 +634,7 @@ if page == "Home":
             target_page="Diet Planner",
         )
 
-    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
 
     # Row 3
     r3 = st.columns(3)
@@ -679,7 +660,7 @@ if page == "Home":
             target_page="Sleep Recommendation",
         )
 
-    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
 
     # Row 4
     r4 = st.columns(3)
@@ -701,15 +682,11 @@ if page == "Home":
     st.markdown("<br><br>", unsafe_allow_html=True)
 
     st.markdown("### System Status", unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2 = st.columns(2)
     with c1:
-        card("🤖", "AI Engine", "Gemini", "AI assistance")
-    with c2:
         card("🧰", "Tools", "12+", "Health utilities")
-    with c3:
+    with c2:
         card("📄", "Reports", "PDF", "Downloadable reports")
-    with c4:
-        card("⚡", "Mode", "FAST", "Lightweight interface")
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.info(
@@ -806,7 +783,7 @@ Do not personalize treatment.
 
 
 # =========================================================
-# PAGE: BMI CALCULATOR (WITH CM / FEET+INCHES OPTION)
+# PAGE: BMI CALCULATOR
 # =========================================================
 elif page == "BMI Calculator":
     hero(
@@ -1214,15 +1191,13 @@ elif page == "Health Dashboard":
         else "—"
     )
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     with c1:
         card("⚖️", "BMI", bmi_value, "Last calculation")
     with c2:
         card("💧", "Water", water_value, "Last estimate")
     with c3:
         card("😴", "Sleep", sleep_value, "Selected duration")
-    with c4:
-        card("🤖", "Gemini", "Ready" if client else "Offline", "AI engine")
 
     st.markdown("<br>### System Modules", unsafe_allow_html=True)
 
@@ -1253,7 +1228,7 @@ elif page == "AI Command Center":
     hero(
         "AI Command Center",
         "Ask general health and wellness questions in a dedicated Gemini conversation.",
-        "NEXUS AI",
+        "",
     )
 
     for message in st.session_state.chat_history:
@@ -1325,12 +1300,10 @@ elif page == "Settings":
 
     st.markdown("<br>### System Status", unsafe_allow_html=True)
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     with c1:
-        card("🤖", "Gemini", "Connected" if client else "Not configured")
-    with c2:
         card("📄", "PDF", "Ready" if create_pdf else "Unavailable")
-    with c3:
+    with c2:
         card("⚡", "UI", "Fast Mode", "Lightweight design")
 
 
