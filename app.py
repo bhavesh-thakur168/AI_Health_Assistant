@@ -165,7 +165,7 @@ glass_blur = "blur(16px)"
 
 
 # =========================================================
-# STYLESHEET WITH COLORFUL VIBRANCE & ANIMATIONS
+# STYLESHEET WITH ENHANCED SIDEBAR & DNA LOGO STYLING
 # =========================================================
 st.markdown(
     f"""
@@ -249,31 +249,86 @@ st.markdown(
     }}
 }}
 
+/* =========================================================
+   ENHANCED SIDEBAR DESIGN & DNA LOGO WRAPPER
+   ========================================================= */
 [data-testid="stSidebar"] {{
-    background: linear-gradient(180deg, rgba(10, 15, 30, 0.96) 0%, rgba(20, 10, 35, 0.97) 100%) !important;
-    backdrop-filter: var(--blur);
-    -webkit-backdrop-filter: var(--blur);
-    border-right: 1px solid rgba(236, 72, 153, 0.2);
-    box-shadow: 10px 0 35px rgba(0, 0, 0, 0.6);
+    background: linear-gradient(180deg, rgba(8, 12, 26, 0.96) 0%, rgba(18, 10, 32, 0.97) 50%, rgba(10, 16, 35, 0.98) 100%) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(236, 72, 153, 0.25);
+    box-shadow: 12px 0 40px rgba(0, 0, 0, 0.7);
+}}
+
+.sidebar-logo-card {{
+    text-align: center;
+    padding: 20px 14px;
+    border-radius: 20px;
+    background: linear-gradient(145deg, rgba(236, 72, 153, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%);
+    border: 1px solid rgba(236, 72, 153, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}}
+
+.sidebar-logo-card::before {{
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, transparent 60%);
+    pointer-events: none;
+}}
+
+.dna-logo-wrapper {{
+    width: 90px;
+    height: 90px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 0 16px rgba(236, 72, 153, 0.65)) drop-shadow(0 0 25px rgba(6, 182, 212, 0.45));
+    animation: pulseLogo 4s ease-in-out infinite alternate;
+}}
+
+@keyframes pulseLogo {{
+    0% {{ transform: scale(1); filter: drop-shadow(0 0 14px rgba(236, 72, 153, 0.6)); }}
+    100% {{ transform: scale(1.06); filter: drop-shadow(0 0 22px rgba(6, 182, 212, 0.8)); }}
 }}
 
 [data-testid="stSidebar"] div[data-testid="stRadio"] label {{
-    border-radius: 12px;
-    padding: 10px 14px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 14px;
+    padding: 11px 16px;
+    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     border: 1px solid transparent;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 600;
     color: #cbd5e1;
-    margin-bottom: 2px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.4);
 }}
 
 [data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {{
-    background: linear-gradient(90deg, rgba(236, 72, 153, 0.15), rgba(6, 182, 212, 0.15));
-    border-color: rgba(236, 72, 153, 0.4);
+    background: linear-gradient(90deg, rgba(236, 72, 153, 0.18), rgba(6, 182, 212, 0.18));
+    border-color: rgba(236, 72, 153, 0.45);
     color: #ffffff;
-    transform: translateX(4px);
+    transform: translateX(5px);
+    box-shadow: 0 4px 15px rgba(236, 72, 153, 0.25);
+}}
+
+[data-testid="stSidebar"] div[data-testid="stRadio"] [aria-checked="true"] + div label,
+[data-testid="stSidebar"] div[data-testid="stRadio"] label[data-checked="true"] {{
+    background: linear-gradient(90deg, rgba(236, 72, 153, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%) !important;
+    border: 1px solid rgba(0, 242, 254, 0.5) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 20px rgba(0, 242, 254, 0.35) !important;
 }}
 
 h1, h2, h3, h4, h5, h6 {{
@@ -546,7 +601,7 @@ div[data-testid="stColumn"] .stButton > button {{
         border-radius: 14px !important;
     }}
     [data-testid="stSidebar"] {{
-        width: 82vw !important;
+        width: 84vw !important;
     }}
 }}
 </style>
@@ -673,7 +728,7 @@ def generate_master_session_pdf():
         sections.append(f"### MEDICAL IMAGE EXPLANATION\n{st.session_state.medical_report_result}")
 
     if not sections:
-        return None, "This function will be available after you use other features."
+        return None, "This function will be available after you use another functions"
 
     master_content = "\n\n" + ("\n\n" + "="*40 + "\n\n").join(sections)
     heading = "HEALTHMATE AI - MASTER HEALTH & WELLNESS SUMMARY"
@@ -718,7 +773,7 @@ def render_master_download_banner(key_suffix="default"):
 
 
 # =========================================================
-# NAVIGATION & SIDEBAR
+# NAVIGATION & UPGRADED SIDEBAR WITH AI DNA LOGO
 # =========================================================
 pages = [
     "Home",
@@ -756,18 +811,49 @@ page_icons = {
     "About": "ⓘ",
 }
 
+# High Quality SVG DNA Logo Matching Uploaded Image
+dna_svg_logo = """
+<svg viewBox="0 0 100 100" width="80" height="80" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="tealStrand" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00f2fe"/>
+            <stop offset="50%" stop-color="#10b981"/>
+            <stop offset="100%" stop-color="#06b6d4"/>
+        </linearGradient>
+        <linearGradient id="pinkStrand" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f43f5e"/>
+            <stop offset="50%" stop-color="#ec4899"/>
+            <stop offset="100%" stop-color="#c084fc"/>
+        </linearGradient>
+    </defs>
+    <!-- Cross base-pairs -->
+    <line x1="30" y1="22" x2="70" y2="30" stroke="#a855f7" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="24" y1="36" x2="76" y2="44" stroke="#38bdf8" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="24" y1="56" x2="76" y2="64" stroke="#84cc16" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="30" y1="70" x2="70" y2="78" stroke="#f43f5e" stroke-width="4.5" stroke-linecap="round"/>
+    
+    <!-- Primary Teal Ribbon Helix -->
+    <path d="M 20 20 C 50 20, 80 40, 80 50 C 80 60, 50 80, 20 80" fill="none" stroke="url(#tealStrand)" stroke-width="11" stroke-linecap="round"/>
+    
+    <!-- Secondary Pink Ribbon Helix -->
+    <path d="M 80 20 C 50 20, 20 40, 20 50 C 20 60, 50 80, 80 80" fill="none" stroke="url(#pinkStrand)" stroke-width="11" stroke-linecap="round"/>
+</svg>
+"""
+
 with st.sidebar:
     st.markdown(
         f"""
-        <div style="text-align:center; padding:10px 0 16px;">
-            <div style="font-size:46px; line-height:1; filter: drop-shadow(0 0 16px rgba(236,72,153,0.7));">🧬</div>
-            <div style="font-family:'Outfit'; font-size:22px; font-weight:800; background:var(--gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-top:6px;">
+        <div class="sidebar-logo-card">
+            <div class="dna-logo-wrapper">
+                {dna_svg_logo}
+            </div>
+            <div style="font-family:'Outfit'; font-size:23px; font-weight:900; background:var(--gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-top:8px; letter-spacing:-0.5px;">
                 HealthMate AI
             </div>
-            <div style="font-size:9.5px; color:{muted}; letter-spacing:2px; margin-top:2px; font-weight:700;">
-                VIBRANT HEALTH SUITE
+            <div style="font-size:9.5px; color:{muted}; letter-spacing:2px; margin-top:3px; font-weight:800;">
+                GENOMIC WELLNESS SUITE
             </div>
-            <div style="margin-top:12px;">
+            <div style="margin-top:14px;">
                 <span class="status">
                     <span class="dot"></span>
                     SYSTEM ONLINE
@@ -919,7 +1005,7 @@ if page == "Home":
         "⚠️ HealthMate AI provides general educational information only and is not a substitute for professional medical advice."
     )
 
-    # Master Download PDF moved to the very bottom of the Home page
+    # Master Download PDF moved to the bottom of the Home page
     render_master_download_banner("home_bottom")
 
 
