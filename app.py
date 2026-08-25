@@ -61,7 +61,7 @@ components.html(
 # =========================================================
 # SESSION STATE INITIALIZATION
 # =========================================================
-VALID_MODELS = ["gemini-2.5-flash", "gemini-2.5-pro"]
+VALID_MODELS = ["gemini-3.6-flash", "gemini-3.6-pro"]
 
 session_defaults = {
     "page": "Home",
@@ -82,20 +82,19 @@ session_defaults = {
     "enable_animations": True,
     "anim_speed": "Normal (15s)",
     "font_scale": "Balanced",
-    "ai_model": "gemini-2.5-flash",
+    "ai_model": "gemini-3.6-flash",
 }
 
 for key, default_value in session_defaults.items():
     if key not in st.session_state:
         st.session_state[key] = default_value
 
-# Force reset if an invalid model name was saved in state
 if st.session_state.ai_model not in VALID_MODELS:
-    st.session_state.ai_model = "gemini-2.5-flash"
+    st.session_state.ai_model = "gemini-3.6-flash"
 
 
 # =========================================================
-# GEMINI CLIENT & EXECUTION SAFEGUARD
+# GEMINI CLIENT & EXECUTION SAFEGUARD WITH RETRY LOGIC
 # =========================================================
 @st.cache_resource
 def get_client():
@@ -111,8 +110,8 @@ def get_client():
 client = get_client()
 
 
-def ask_ai(prompt, model=None):
-    """Executes requests using valid Google GenAI model endpoints."""
+def ask_ai(prompt, model=None, max_retries=2):
+    """Executes requests with automatic quota backoff and user-friendly error messages."""
     if client is None:
         st.error(
             "Gemini API is not configured. Please add GEMINI_API_KEY "
@@ -122,17 +121,30 @@ def ask_ai(prompt, model=None):
 
     selected_model = model or st.session_state.ai_model
     if selected_model not in VALID_MODELS:
-        selected_model = "gemini-2.5-flash"
+        selected_model = "gemini-3.6-flash"
 
-    try:
-        response = client.models.generate_content(
-            model=selected_model,
-            contents=prompt,
-        )
-        return response.text
-    except Exception as exc:
-        st.error(f"Gemini request failed: {exc}")
-        return None
+    for attempt in range(max_retries + 1):
+        try:
+            response = client.models.generate_content(
+                model=selected_model,
+                contents=prompt,
+            )
+            return response.text
+        except Exception as exc:
+            err_msg = str(exc)
+            if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+                if attempt < max_retries:
+                    time.sleep(10 * (attempt + 1))
+                    continue
+                else:
+                    st.warning(
+                        "⏳ **Free Tier Quota Limit Reached (429):** Google limits free requests per minute. "
+                        "Please wait about 60 seconds before trying again, or set up billing in Google AI Studio."
+                    )
+                    return None
+            else:
+                st.error(f"Gemini request failed: {exc}")
+                return None
 
 
 # =========================================================
