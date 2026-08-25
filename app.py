@@ -2,9 +2,8 @@ import time
 import streamlit as st
 import streamlit.components.v1 as components
 from google import genai
-from google.genai import types
 
-# PDF Generator Import
+# Optional PDF Generator Import
 try:
     from report import create_pdf
 except Exception:
@@ -12,7 +11,7 @@ except Exception:
 
 
 # =========================================================
-# PAGE CONFIGURATION
+# 1. PAGE CONFIGURATION
 # =========================================================
 st.set_page_config(
     page_title="HealthMate AI - Vibrant Edition",
@@ -23,7 +22,7 @@ st.set_page_config(
 
 
 # =========================================================
-# AUTOMATIC SIDEBAR CLOSE ON MOBILE SELECTION
+# 2. AUTOMATIC SIDEBAR AUTO-CLOSE ON MOBILE
 # =========================================================
 components.html(
     """
@@ -59,22 +58,22 @@ components.html(
 
 
 # =========================================================
-# SESSION STATE INITIALIZATION
+# 3. SESSION STATE INITIALIZATION
 # =========================================================
-VALID_MODELS = ["gemini-3.6-flash", "gemini-3.6-pro"]
+VALID_MODELS = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash"]
 
 session_defaults = {
     "page": "Home",
     "chat_history": [],
     "bmi": None,
     "bmi_category": None,
+    "bmr": None,
     "water": None,
     "sleep": None,
     "symptom_result": None,
     "med_result": None,
     "diet_result": None,
     "exercise_result": None,
-    "calorie_result": None,
     "sleep_result": None,
     "medical_report_result": None,
     "command_center_result": None,
@@ -82,7 +81,7 @@ session_defaults = {
     "enable_animations": True,
     "anim_speed": "Normal (15s)",
     "font_scale": "Balanced",
-    "ai_model": "gemini-3.6-flash",
+    "ai_model": "gemini-2.5-flash",
 }
 
 for key, default_value in session_defaults.items():
@@ -90,11 +89,11 @@ for key, default_value in session_defaults.items():
         st.session_state[key] = default_value
 
 if st.session_state.ai_model not in VALID_MODELS:
-    st.session_state.ai_model = "gemini-3.6-flash"
+    st.session_state.ai_model = "gemini-2.5-flash"
 
 
 # =========================================================
-# GEMINI CLIENT & EXECUTION SAFEGUARD WITH RETRY LOGIC
+# 4. GEMINI CLIENT & RATE-LIMIT RESILIENT ENGINE (429 FIX)
 # =========================================================
 @st.cache_resource
 def get_client():
@@ -110,45 +109,48 @@ def get_client():
 client = get_client()
 
 
-def ask_ai(prompt, model=None, max_retries=2):
-    """Executes requests with automatic quota backoff and user-friendly error messages."""
+def ask_ai(prompt: str, model: str = None, max_retries: int = 3) -> str:
+    """Executes AI prompts with automatic backoff retry logic to handle rate limits (HTTP 429)."""
     if client is None:
         st.error(
-            "Gemini API is not configured. Please add GEMINI_API_KEY "
-            "to .streamlit/secrets.toml."
+            "⚠️ Gemini API Key missing. Please define `GEMINI_API_KEY` in your `.streamlit/secrets.toml` file."
         )
         return None
 
     selected_model = model or st.session_state.ai_model
     if selected_model not in VALID_MODELS:
-        selected_model = "gemini-3.6-flash"
+        selected_model = "gemini-2.5-flash"
 
-    for attempt in range(max_retries + 1):
-        try:
-            response = client.models.generate_content(
-                model=selected_model,
-                contents=prompt,
-            )
-            return response.text
-        except Exception as exc:
-            err_msg = str(exc)
-            if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
-                if attempt < max_retries:
-                    time.sleep(10 * (attempt + 1))
-                    continue
+    # Model fallback hierarchy if current model hits quota limit
+    model_fallback_queue = [selected_model] + [m for m in VALID_MODELS if m != selected_model]
+
+    for current_model in model_fallback_queue:
+        for attempt in range(max_retries):
+            try:
+                response = client.models.generate_content(
+                    model=current_model,
+                    contents=prompt,
+                )
+                return response.text
+            except Exception as exc:
+                err_msg = str(exc)
+                if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+                    wait_time = (attempt + 1) * 6
+                    st.info(f"⏳ Free quota limit reached on `{current_model}`. Retrying in {wait_time}s (Attempt {attempt + 1}/{max_retries})...")
+                    time.sleep(wait_time)
                 else:
-                    st.warning(
-                        "⏳ **Free Tier Quota Limit Reached (429):** Google limits free requests per minute. "
-                        "Please wait about 60 seconds before trying again, or set up billing in Google AI Studio."
-                    )
+                    st.error(f"Execution Error: {exc}")
                     return None
-            else:
-                st.error(f"Gemini request failed: {exc}")
-                return None
+
+    st.error(
+        "❌ **API Quota Depleted:** Google AI Studio Free Tier rate limit exceeded across models. "
+        "Please wait 60 seconds before trying again."
+    )
+    return None
 
 
 # =========================================================
-# THEME & ANIMATION DYNAMIC CONFIGURATION
+# 5. DYNAMIC THEME & TYPOGRAPHY
 # =========================================================
 accent_themes = {
     "Vibrant Aurora": {"primary": "#00f2fe", "secondary": "#f43f5e", "gradient": "linear-gradient(135deg, #00f2fe 0%, #a855f7 50%, #ec4899 100%)"},
@@ -161,11 +163,7 @@ current_theme = accent_themes.get(st.session_state.accent, accent_themes["Vibran
 accent = current_theme["primary"]
 theme_gradient = current_theme["gradient"]
 
-speed_map = {
-    "Fast (8s)": "8s",
-    "Normal (15s)": "15s",
-    "Relaxed (25s)": "25s",
-}
+speed_map = {"Fast (8s)": "8s", "Normal (15s)": "15s", "Relaxed (25s)": "25s"}
 bg_speed = speed_map.get(st.session_state.anim_speed, "15s")
 anim_play_state = "running" if st.session_state.enable_animations else "paused"
 
@@ -176,18 +174,9 @@ font_sizes = {
 }
 scale = font_sizes.get(st.session_state.font_scale, font_sizes["Balanced"])
 
-background = "#030712"
-surface = "rgba(15, 23, 42, 0.8)"
-surface2 = "rgba(30, 41, 75, 0.75)"
-text = "#f8fafc"
-muted = "#94a3b8"
-border = "rgba(236, 72, 153, 0.25)"
-card_shadow = "0 12px 35px 0 rgba(0, 0, 0, 0.65)"
-glass_blur = "blur(16px)"
-
 
 # =========================================================
-# STYLESHEET
+# 6. APPLICATION STYLESHEET
 # =========================================================
 st.markdown(
     f"""
@@ -195,16 +184,16 @@ st.markdown(
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
 :root {{
-    --bg: {background};
-    --surface: {surface};
-    --surface2: {surface2};
-    --text: {text};
-    --muted: {muted};
-    --border: {border};
+    --bg: #030712;
+    --surface: rgba(15, 23, 42, 0.85);
+    --surface2: rgba(30, 41, 75, 0.75);
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --border: rgba(236, 72, 153, 0.25);
     --accent: {accent};
     --gradient: {theme_gradient};
-    --shadow: {card_shadow};
-    --blur: {glass_blur};
+    --shadow: 0 12px 35px 0 rgba(0, 0, 0, 0.65);
+    --blur: blur(16px);
 }}
 
 .stApp {{
@@ -220,55 +209,6 @@ st.markdown(
     0% {{ background-position: 0% 50%; }}
     50% {{ background-position: 100% 50%; }}
     100% {{ background-position: 0% 50%; }}
-}}
-
-.stApp::before {{
-    content: '';
-    position: fixed;
-    top: -140px;
-    left: -140px;
-    width: 550px;
-    height: 550px;
-    background: radial-gradient(circle, rgba(236, 72, 153, 0.28) 0%, rgba(168, 85, 247, 0.15) 40%, transparent 70%);
-    filter: blur(70px);
-    z-index: 0;
-    pointer-events: none;
-    animation: floatOrb 12s ease-in-out infinite alternate {anim_play_state};
-}}
-
-.stApp::after {{
-    content: '';
-    position: fixed;
-    bottom: -140px;
-    right: -140px;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(6, 182, 212, 0.28) 0%, rgba(16, 185, 129, 0.15) 40%, transparent 70%);
-    filter: blur(75px);
-    z-index: 0;
-    pointer-events: none;
-    animation: floatOrb 16s ease-in-out infinite alternate-reverse {anim_play_state};
-}}
-
-@keyframes floatOrb {{
-    0% {{ transform: translate(0px, 0px) scale(1); }}
-    50% {{ transform: translate(50px, -40px) scale(1.12); }}
-    100% {{ transform: translate(-30px, 30px) scale(0.92); }}
-}}
-
-.hero, .card, .tool, .result, div[data-testid="stForm"], .master-card {{
-    animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}}
-
-@keyframes fadeInUp {{
-    from {{
-        opacity: 0;
-        transform: translateY(20px) scale(0.97);
-    }}
-    to {{
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }}
 }}
 
 [data-testid="stSidebar"] {{
@@ -287,38 +227,28 @@ st.markdown(
     border: 1px solid rgba(236, 72, 153, 0.3);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     margin-bottom: 20px;
-    position: relative;
-    overflow: hidden;
 }}
 
 .dna-logo-wrapper {{
-    width: 90px;
-    height: 90px;
+    width: 80px;
+    height: 80px;
     margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    filter: drop-shadow(0 0 16px rgba(236, 72, 153, 0.65)) drop-shadow(0 0 25px rgba(6, 182, 212, 0.45));
-    animation: pulseLogo 4s ease-in-out infinite alternate;
-}}
-
-@keyframes pulseLogo {{
-    0% {{ transform: scale(1); filter: drop-shadow(0 0 14px rgba(236, 72, 153, 0.6)); }}
-    100% {{ transform: scale(1.06); filter: drop-shadow(0 0 22px rgba(6, 182, 212, 0.8)); }}
+    filter: drop-shadow(0 0 16px rgba(236, 72, 153, 0.65));
 }}
 
 [data-testid="stSidebar"] div[data-testid="stRadio"] label {{
     border-radius: 14px;
     padding: 11px 16px;
-    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.28s ease;
     cursor: pointer;
     border: 1px solid transparent;
     font-size: 13.5px;
     font-weight: 600;
     color: #cbd5e1;
     margin-bottom: 5px;
-    display: flex;
-    align-items: center;
     background: rgba(15, 23, 42, 0.4);
 }}
 
@@ -326,8 +256,7 @@ st.markdown(
     background: linear-gradient(90deg, rgba(236, 72, 153, 0.18), rgba(6, 182, 212, 0.18));
     border-color: rgba(236, 72, 153, 0.45);
     color: #ffffff;
-    transform: translateX(5px);
-    box-shadow: 0 4px 15px rgba(236, 72, 153, 0.25);
+    transform: translateX(4px);
 }}
 
 [data-testid="stSidebar"] div[data-testid="stRadio"] [aria-checked="true"] + div label,
@@ -339,20 +268,12 @@ st.markdown(
     box-shadow: 0 4px 20px rgba(0, 242, 254, 0.35) !important;
 }}
 
-h1, h2, h3, h4, h5, h6 {{
-    font-family: 'Outfit', sans-serif !important;
-    color: var(--text) !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.02em !important;
-}}
-
 .hero {{
-    padding: 34px 38px;
+    padding: 30px 34px;
     border: 1px solid rgba(236, 72, 153, 0.3);
     border-radius: 24px;
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 15, 45, 0.85) 100%);
     backdrop-filter: var(--blur);
-    -webkit-backdrop-filter: var(--blur);
     box-shadow: 0 16px 45px rgba(0, 0, 0, 0.5);
     margin-bottom: 24px;
     position: relative;
@@ -384,7 +305,7 @@ h1, h2, h3, h4, h5, h6 {{
 }}
 
 .hero h1 {{
-    margin: 14px 0 8px 0;
+    margin: 12px 0 6px 0;
     font-size: clamp(24px, 4vw, {scale['h1']});
     line-height: 1.15;
     background: var(--gradient);
@@ -396,18 +317,16 @@ h1, h2, h3, h4, h5, h6 {{
     color: #cbd5e1;
     margin: 0;
     font-size: {scale['hero']};
-    line-height: 1.6;
-    max-width: 780px;
+    line-height: 1.5;
 }}
 
 .card {{
     background: linear-gradient(145deg, rgba(20, 28, 55, 0.85) 0%, rgba(12, 18, 38, 0.8) 100%);
     backdrop-filter: var(--blur);
-    -webkit-backdrop-filter: var(--blur);
     border: 1px solid rgba(236, 72, 153, 0.25);
     border-radius: 20px;
-    padding: 20px;
-    min-height: 130px;
+    padding: 18px;
+    min-height: 120px;
     box-shadow: var(--shadow);
     transition: all 0.3s ease;
     display: flex;
@@ -415,22 +334,14 @@ h1, h2, h3, h4, h5, h6 {{
     justify-content: center;
 }}
 
-.card:hover {{
-    transform: translateY(-4px);
-    border-color: #ec4899;
-    box-shadow: 0 12px 32px rgba(236, 72, 153, 0.3);
-}}
-
 .card .icon {{
-    font-size: 36px !important;
-    line-height: 1;
-    filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.6));
+    font-size: 32px !important;
 }}
 
 .card .label {{
     color: #94a3b8;
     font-size: 11px;
-    margin-top: 10px;
+    margin-top: 8px;
     text-transform: uppercase;
     font-weight: 700;
     letter-spacing: 1.2px;
@@ -439,31 +350,24 @@ h1, h2, h3, h4, h5, h6 {{
 .card .value {{
     color: #ffffff;
     font-family: 'Outfit', sans-serif;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 800;
     margin-top: 2px;
 }}
 
 .card .desc {{
     color: #38bdf8;
-    font-size: 12.5px;
+    font-size: 12px;
     margin-top: 2px;
 }}
 
 .tool {{
     background: linear-gradient(145deg, rgba(20, 28, 55, 0.85) 0%, rgba(12, 18, 38, 0.8) 100%);
     backdrop-filter: var(--blur);
-    -webkit-backdrop-filter: var(--blur);
     border: 1px solid rgba(0, 242, 254, 0.2);
     border-radius: 20px 20px 0 0;
-    padding: 20px;
-    min-height: 130px;
+    padding: 18px;
     box-shadow: var(--shadow);
-    transition: all 0.3s ease;
-}}
-
-.tool:hover {{
-    border-color: rgba(236, 72, 153, 0.5);
 }}
 
 .tool-static {{
@@ -473,23 +377,16 @@ h1, h2, h3, h4, h5, h6 {{
 .tool b {{
     font-family: 'Outfit', sans-serif;
     color: #ffffff;
-    font-size: 17px;
+    font-size: 16px;
     display: block;
-    margin-top: 10px;
+    margin-top: 8px;
 }}
 
 .tool p {{
     color: #94a3b8;
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: 12.5px;
+    line-height: 1.45;
     margin-top: 4px;
-    margin-bottom: 0;
-}}
-
-.tool-icon {{
-    font-size: 38px !important;
-    display: inline-block;
-    filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.6));
 }}
 
 .status {{
@@ -499,11 +396,10 @@ h1, h2, h3, h4, h5, h6 {{
     color: #10b981;
     background: rgba(16, 185, 129, 0.15);
     border: 1px solid rgba(16, 185, 129, 0.4);
-    padding: 6px 14px;
-    border-radius: 24px;
-    font-size: 10.5px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 10px;
     font-weight: 800;
-    letter-spacing: 1px;
 }}
 
 .dot {{
@@ -512,19 +408,11 @@ h1, h2, h3, h4, h5, h6 {{
     border-radius: 50%;
     background: #10b981;
     box-shadow: 0 0 10px #10b981;
-    animation: pulseGlow 1.8s infinite;
-}}
-
-@keyframes pulseGlow {{
-    0% {{ transform: scale(0.9); opacity: 0.7; }}
-    50% {{ transform: scale(1.3); opacity: 1; }}
-    100% {{ transform: scale(0.9); opacity: 0.7; }}
 }}
 
 .result {{
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(25, 15, 45, 0.9) 100%);
     backdrop-filter: var(--blur);
-    -webkit-backdrop-filter: var(--blur);
     border: 1px solid rgba(236, 72, 153, 0.3);
     border-left: 5px solid #ec4899;
     border-radius: 18px;
@@ -533,18 +421,6 @@ h1, h2, h3, h4, h5, h6 {{
     margin-top: 18px;
     line-height: 1.65;
     color: #ffffff;
-    word-break: break-word;
-}}
-
-.master-card {{
-    background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(168, 85, 247, 0.15) 50%, rgba(6, 182, 212, 0.15) 100%);
-    backdrop-filter: var(--blur);
-    border: 1px solid rgba(236, 72, 153, 0.4);
-    border-radius: 24px;
-    padding: 24px;
-    margin-top: 24px;
-    margin-bottom: 24px;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
 }}
 
 .stButton > button, div[data-testid="stDownloadButton"] > button {{
@@ -553,64 +429,24 @@ h1, h2, h3, h4, h5, h6 {{
     background: linear-gradient(135deg, rgba(30, 20, 50, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
     color: #ffffff;
     font-weight: 700;
-    padding: 12px 20px;
+    padding: 10px 18px;
     transition: all 0.25s ease;
     width: 100%;
-    min-height: 48px;
 }}
 
-.stButton > button:hover, div[data-testid="stDownloadButton"] > button:hover {{
+.stButton > button:hover {{
     border-color: #00f2fe;
     color: #00f2fe;
-    background: linear-gradient(135deg, rgba(40, 25, 65, 0.95) 0%, rgba(20, 30, 55, 0.95) 100%);
     box-shadow: 0 4px 20px rgba(0, 242, 254, 0.35);
-}}
-
-div[data-testid="stColumn"] .stButton > button {{
-    border-top-left-radius: 0px;
-    border-top-right-radius: 0px;
-    border-bottom-left-radius: 18px;
-    border-bottom-right-radius: 18px;
-    margin-top: -1px;
 }}
 
 .footer {{
     text-align: center;
     color: #64748b;
-    font-size: 12.5px;
-    padding: 28px 0 16px;
+    font-size: 12px;
+    padding: 24px 0 14px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
-    margin-top: 45px;
-    line-height: 1.6;
-}}
-
-@media (max-width: 768px) {{
-    .hero {{
-        padding: 22px 18px !important;
-        border-radius: 18px !important;
-        margin-bottom: 18px !important;
-    }}
-    .hero h1 {{
-        font-size: 24px !important;
-    }}
-    .hero p {{
-        font-size: 13.5px !important;
-    }}
-    .card, .tool {{
-        padding: 16px !important;
-        border-radius: 16px !important;
-        min-height: auto !important;
-    }}
-    .tool {{
-        border-radius: 16px 16px 0 0 !important;
-    }}
-    .result {{
-        padding: 16px !important;
-        border-radius: 14px !important;
-    }}
-    [data-testid="stSidebar"] {{
-        width: 84vw !important;
-    }}
+    margin-top: 40px;
 }}
 </style>
 """,
@@ -619,7 +455,7 @@ div[data-testid="stColumn"] .stButton > button {{
 
 
 # =========================================================
-# UI HELPERS & PDF DOWNLOAD HANDLER
+# 7. UI HELPERS & CALCULATORS
 # =========================================================
 def hero(title, subtitle, kicker="HEALTHMATE AI"):
     st.markdown(
@@ -653,7 +489,7 @@ def tool(icon, title, description, target_page=None):
     st.markdown(
         f"""
         <div class="tool {extra_class}">
-            <div class="tool-icon">{icon}</div>
+            <div style="font-size:32px;">{icon}</div>
             <div><b>{title}</b></div>
             <p>{description}</p>
         </div>
@@ -678,7 +514,7 @@ def show_result(text):
 
 def pdf_download(heading_or_input, answer, file_name="Health_Report.pdf", button_label="📄 Download Health Report", key=None):
     if create_pdf is None:
-        st.warning("PDF module is unavailable. Place report.py in your project root directory.")
+        st.warning("PDF module is unavailable. Place `report.py` in your project root directory.")
         return
 
     try:
@@ -699,12 +535,28 @@ def pdf_download(heading_or_input, answer, file_name="Health_Report.pdf", button
         st.error(f"PDF creation failed: {exc}")
 
 
+def compute_bmi(weight_kg, height_cm):
+    if height_cm > 0 and weight_kg > 0:
+        height_m = height_cm / 100.0
+        bmi_val = round(weight_kg / (height_m ** 2), 1)
+        if bmi_val < 18.5:
+            cat = "Underweight"
+        elif 18.5 <= bmi_val <= 24.9:
+            cat = "Normal weight"
+        elif 25.0 <= bmi_val <= 29.9:
+            cat = "Overweight"
+        else:
+            cat = "Obese"
+        return bmi_val, cat
+    return None, None
+
+
 def generate_master_summary():
     summary_data = []
     if st.session_state.bmi:
-        summary_data.append(f"### BMI Metric\n* Value: {st.session_state.bmi} ({st.session_state.bmi_category})")
+        summary_data.append(f"### Body Metrics\n* **BMI**: {st.session_state.bmi} ({st.session_state.bmi_category})\n* **Hydration Target**: {st.session_state.water or '--'} L/day\n* **Sleep Target**: {st.session_state.sleep or '--'} hrs/day")
     if st.session_state.command_center_result:
-        summary_data.append(f"### AI Command Center Execution\n{st.session_state.command_center_result}")
+        summary_data.append(f"### AI Command Center Output\n{st.session_state.command_center_result}")
     if st.session_state.symptom_result:
         summary_data.append(f"### Symptom Assessment\n{st.session_state.symptom_result}")
     if st.session_state.medical_report_result:
@@ -715,41 +567,30 @@ def generate_master_summary():
         summary_data.append(f"### Exercise & Workout Plan\n{st.session_state.exercise_result}")
     if st.session_state.sleep_result:
         summary_data.append(f"### Sleep Evaluation\n{st.session_state.sleep_result}")
-    
+
     if not summary_data:
-        return "No health metrics or assessment data recorded yet in this session. Use the available tools to generate outputs."
-    
+        return "No active session health data recorded yet. Calculate your metrics or use AI tools to generate outputs."
+
     return "\n\n---\n\n".join(summary_data)
 
 
 # =========================================================
-# SIDEBAR NAVIGATION & BRANDING
+# 8. SIDEBAR NAVIGATION
 # =========================================================
 with st.sidebar:
     st.markdown(
         """
         <div class="sidebar-logo-card">
             <div class="dna-logo-wrapper">
-                <svg viewBox="0 0 100 100" width="70" height="70">
-                    <path d="M30 15 Q50 35 70 15 Q50 50 30 85 Q50 65 70 85" fill="none" stroke="url(#dna-grad1)" stroke-width="6" stroke-linecap="round"/>
-                    <path d="M70 15 Q50 35 30 15 Q50 50 70 85 Q50 65 30 85" fill="none" stroke="url(#dna-grad2)" stroke-width="6" stroke-linecap="round"/>
+                <svg viewBox="0 0 100 100" width="60" height="60">
+                    <path d="M30 15 Q50 35 70 15 Q50 50 30 85 Q50 65 70 85" fill="none" stroke="#00f2fe" stroke-width="6" stroke-linecap="round"/>
+                    <path d="M70 15 Q50 35 30 15 Q50 50 70 85 Q50 65 30 85" fill="none" stroke="#ec4899" stroke-width="6" stroke-linecap="round"/>
                     <line x1="38" y1="26" x2="62" y2="26" stroke="#00f2fe" stroke-width="3" opacity="0.8"/>
                     <line x1="44" y1="40" x2="56" y2="40" stroke="#ec4899" stroke-width="3" opacity="0.8"/>
                     <line x1="44" y1="60" x2="56" y2="60" stroke="#00f2fe" stroke-width="3" opacity="0.8"/>
-                    <line x1="38" y1="74" x2="62" y2="74" stroke="#ec4899" stroke-width="3" opacity="0.8"/>
-                    <defs>
-                        <linearGradient id="dna-grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#00f2fe" />
-                            <stop offset="100%" stop-color="#ec4899" />
-                        </linearGradient>
-                        <linearGradient id="dna-grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#ec4899" />
-                            <stop offset="100%" stop-color="#00f2fe" />
-                        </linearGradient>
-                    </defs>
                 </svg>
             </div>
-            <h3 style="margin-top: 10px; margin-bottom: 2px; font-size: 18px; color: #ffffff;">HealthMate AI</h3>
+            <h3 style="margin-top: 8px; margin-bottom: 2px; font-size: 17px; color: #ffffff;">HealthMate AI</h3>
             <div class="status"><span class="dot"></span> SYSTEM ONLINE</div>
         </div>
         """,
@@ -783,110 +624,140 @@ with st.sidebar:
 
 
 # =========================================================
-# PAGE ROUTING
+# 9. PAGE ROUTING & FEATURES
 # =========================================================
 
 # ---------------------------------------------------------
-# 1. HOMEPAGE / DASHBOARD
+# HOMEPAGE / DASHBOARD
 # ---------------------------------------------------------
 if st.session_state.page == "Home":
     hero(
         "AI-Powered Personal Health Suite",
-        "Access instant symptom triaging, report analysis, personalized nutrition, and wellness plans.",
+        "Instant medical triaging, lab analysis, personalized nutrition, and fitness plans.",
         "DASHBOARD OVERVIEW",
     )
 
+    # Top Metric Dashboard Cards
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
     with col_m1:
         card("⚖️", "Body Mass Index", st.session_state.bmi or "--", st.session_state.bmi_category or "Not calculated")
     with col_m2:
-        card("💧", "Hydration Target", f"{st.session_state.water} L/day" if st.session_state.water else "--", "Daily fluid intake")
+        card("💧", "Hydration Target", f"{st.session_state.water} L/day" if st.session_state.water else "--", "Recommended intake")
     with col_m3:
         card("🌙", "Sleep Target", f"{st.session_state.sleep} hrs" if st.session_state.sleep else "--", "Rest duration")
     with col_m4:
         card("🩺", "Triage Status", "Active" if st.session_state.symptom_result else "Ready", "Diagnostic engine")
 
     st.write("")
+
+    # Interactive Body Metrics Calculator Widget
+    with st.expander("🧮 **Body Metrics & Health Calculator (BMI & Hydration)**", expanded=(st.session_state.bmi is None)):
+        col_b1, col_b2, col_b3 = st.columns(3)
+        with col_b1:
+            weight_in = st.number_input("Weight (kg):", min_value=20.0, max_value=250.0, value=70.0, step=0.5)
+        with col_b2:
+            height_in = st.number_input("Height (cm):", min_value=100.0, max_value=250.0, value=172.0, step=1.0)
+        with col_b3:
+            activity_in = st.selectbox("Activity Level:", ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"])
+
+        if st.button("Calculate & Update Profile Metrics ⚡"):
+            bmi_val, bmi_cat = compute_bmi(weight_in, height_in)
+            st.session_state.bmi = bmi_val
+            st.session_state.bmi_category = bmi_cat
+            st.session_state.water = round(weight_in * 0.035, 1)  # standard hydration formula
+            st.session_state.sleep = 8.0 if activity_in in ["Very Active", "Moderately Active"] else 7.5
+            st.success("Health profile metrics calculated and saved to session!")
+            st.rerun()
+
     st.write("")
 
-    tool(
-        "🤖",
-        "AI Command Center",
-        "Central operational hub for executing global AI commands, query dispatching, and custom health system instructions.",
-        "AI Command Center",
-    )
-
-    st.write("")
-
-    tool(
-        "🩺",
-        "AI Symptom Tracker",
-        "Evaluate acute symptoms, receive triage urgency ratings, and access educational care guidance.",
-        "AI Symptom Tracker",
-    )
-
-    st.write("")
-
-    grid_col1, grid_col2 = st.columns(2)
-    with grid_col1:
+    # Feature Grid
+    g1, g2 = st.columns(2)
+    with g1:
         tool(
-            "📄",
-            "Medical Report Analyzer",
-            "Extract findings and medical terminology from lab tests and clinical summaries.",
-            "Medical Report Analyzer",
+            "🤖",
+            "AI Command Center",
+            "Central operational hub for executing global custom health prompts and system commands.",
+            "AI Command Center",
         )
         st.write("")
         tool(
-            "🥗",
-            "Diet & Nutrition Planner",
-            "Generate customized meal plans, macro breakdowns, and dietary strategies.",
-            "Diet & Nutrition",
+            "🩺",
+            "AI Symptom Tracker",
+            "Evaluate acute symptoms, receive triage urgency ratings, and home care tips.",
+            "AI Symptom Tracker",
+        )
+        st.write("")
+        tool(
+            "📄",
+            "Medical Report Analyzer",
+            "Extract findings and medical terminology from laboratory blood tests and clinical reports.",
+            "Medical Report Analyzer",
         )
 
-    with grid_col2:
+    with g2:
+        tool(
+            "🥗",
+            "Diet & Nutrition Planner",
+            "Generate customized meal plans, macro breakdowns, and caloric target strategies.",
+            "Diet & Nutrition",
+        )
+        st.write("")
         tool(
             "🏋️‍♂️",
             "Exercise & Fitness Planner",
-            "Design custom workout routines structured around your fitness level and goals.",
+            "Design workout routines structured around your fitness level and available equipment.",
             "Exercise & Fitness",
         )
         st.write("")
         tool(
             "🌙",
             "Sleep & Wellness Advisor",
-            "Optimize circadian cycles, improve sleep architecture, and recover faster.",
+            "Optimize circadian cycles, improve sleep quality, and reduce daily fatigue.",
             "Sleep & Wellness",
         )
 
 
 # ---------------------------------------------------------
-# 2. AI COMMAND CENTER
+# AI COMMAND CENTER
 # ---------------------------------------------------------
 elif st.session_state.page == "AI Command Center":
     hero(
         "AI Command Center",
-        "Unified operational hub to dispatch custom health queries, system prompts, and automated actions.",
+        "Unified operational hub to dispatch custom health queries, system instructions, and general AI analysis.",
         "PRIMARY HUB",
     )
 
     with st.container(border=True):
         st.subheader("Global AI Dispatcher")
+        
+        # Preset Prompt Buttons
+        st.markdown("**Quick Action Presets:**")
+        p_col1, p_col2, p_col3 = st.columns(3)
+        preset_text = None
+        with p_col1:
+            if st.button("💡 Standard Cardio Health Guide"):
+                preset_text = "Provide a comprehensive guide on maintaining cardiovascular health through diet, exercise, and stress management."
+        with p_col2:
+            if st.button("🩸 Understanding Lipid Panel"):
+                preset_text = "Explain the key parameters of a lipid panel test (HDL, LDL, Triglycerides) and normal reference ranges."
+        with p_col3:
+            if st.button("🧘 Stress Reduction Routine"):
+                preset_text = "Create a 5-step daily routine to reduce chronic stress and lower cortisol levels."
+
         cmd_input = st.text_area(
-            "Enter operational command or health query:",
-            placeholder="e.g., Provide a comprehensive outline on managing hypertension through lifestyle and dietary changes.",
-            height=140,
+            "Enter operational command or medical query:",
+            value=preset_text or "",
+            placeholder="e.g., Explain the potential side effects and dietary interactions of Iron supplements...",
+            height=130,
         )
 
-        col_c1, col_c2 = st.columns([1, 4])
-        with col_c1:
-            run_cmd = st.button("Execute Command ⚡", use_container_width=True)
-
-    if run_cmd and cmd_input.strip():
-        with st.spinner("Executing command across clinical AI model..."):
-            prompt = f"Act as an authoritative medical AI assistant. Execute the following operational request in detail:\n\n{cmd_input}"
-            res = ask_ai(prompt)
-            if res:
-                st.session_state.command_center_result = res
+        if st.button("Execute Command ⚡", use_container_width=True) and cmd_input.strip():
+            with st.spinner("Executing prompt across medical AI model..."):
+                prompt = f"Act as an expert clinical AI assistant. Execute the following health command thoroughly:\n\n{cmd_input}"
+                res = ask_ai(prompt)
+                if res:
+                    st.session_state.command_center_result = res
 
     if st.session_state.command_center_result:
         show_result(st.session_state.command_center_result)
@@ -894,42 +765,45 @@ elif st.session_state.page == "AI Command Center":
 
 
 # ---------------------------------------------------------
-# 3. AI SYMPTOM TRACKER
+# AI SYMPTOM TRACKER
 # ---------------------------------------------------------
 elif st.session_state.page == "AI Symptom Tracker":
     hero(
         "AI Symptom Tracker",
-        "Input current symptoms for intelligent triage, severity categorization, and medical guidance.",
+        "Input symptoms for intelligent triage evaluation, urgency ratings, and medical guidance.",
         "TRIAGE ENGINE",
     )
 
     with st.form("symptom_form"):
         symptoms = st.text_area(
-            "Describe your symptoms in detail:",
-            placeholder="e.g., Mild headache for 2 days, slight fever of 100°F, fatigue...",
+            "Describe symptoms in detail:",
+            placeholder="e.g., Sharp pain in lower right abdomen starting 4 hours ago, accompanied by mild nausea...",
             height=130,
         )
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns(3)
         with c1:
-            duration = st.text_input("Duration of symptoms:", placeholder="e.g., 3 days")
+            duration = st.text_input("Duration:", placeholder="e.g., 2 days")
         with c2:
-            severity = st.select_slider("Severity Scale:", options=["Mild", "Moderate", "Severe", "Critical"])
+            patient_age = st.number_input("Age:", min_value=1, max_value=120, value=25)
+        with c3:
+            severity = st.select_slider("Severity Level:", options=["Mild", "Moderate", "Severe", "Critical"])
 
         submitted = st.form_submit_button("Analyze Symptoms 🩺")
 
     if submitted and symptoms.strip():
-        with st.spinner("Analyzing symptoms and evaluating triage guidance..."):
+        with st.spinner("Running medical triage algorithm..."):
             prompt = f"""
-            Perform a medical symptom triage assessment based on:
-            - Symptoms: {symptoms}
+            Act as a clinical triage expert. Analyze the following patient symptoms:
+            - Age: {patient_age}
+            - Primary Symptoms: {symptoms}
             - Duration: {duration}
-            - Severity Self-Assessment: {severity}
+            - Self-Reported Severity: {severity}
 
-            Provide:
-            1. Triage Level (Low / Moderate / High Urgency)
-            2. Possible Causes (Educational only)
-            3. Red Flag Symptoms to watch out for
-            4. Next Steps & General Self-Care Measures
+            Structure your response with:
+            1. 🔴 Urgency Triage Level (Low / Moderate / High / Emergency)
+            2. 💡 Potential Educational Causes (Non-definitive)
+            3. 🚩 Red Flag Warning Symptoms (When to seek ER immediately)
+            4. 📋 Recommended Next Steps & Home Care Measures
             """
             res = ask_ai(prompt)
             if res:
@@ -941,24 +815,32 @@ elif st.session_state.page == "AI Symptom Tracker":
 
 
 # ---------------------------------------------------------
-# 4. MEDICAL REPORT ANALYZER
+# MEDICAL REPORT ANALYZER
 # ---------------------------------------------------------
 elif st.session_state.page == "Medical Report Analyzer":
     hero(
         "Medical Report Analyzer",
-        "Translate complex lab reports, blood tests, and clinical findings into clear explanations.",
+        "Translate complex lab reports, blood work, and clinical findings into layman explanations.",
         "LAB INTERPRETER",
     )
 
     report_text = st.text_area(
-        "Paste lab test or diagnostic report text here:",
+        "Paste lab report text or test results here:",
         height=180,
-        placeholder="e.g., Hemoglobin: 11.2 g/dL, Total WBC: 11,500 /mcL, Fasting Glucose: 110 mg/dL...",
+        placeholder="e.g., Total Cholesterol: 240 mg/dL, Fasting Glucose: 115 mg/dL, TSH: 4.8 mIU/L, HbA1c: 6.1%...",
     )
 
     if st.button("Analyze Report 📄") and report_text.strip():
-        with st.spinner("Analyzing laboratory metrics..."):
-            prompt = f"Analyze the following medical report text and break down key terms, abnormal values, and recommendations:\n\n{report_text}"
+        with st.spinner("Decoding laboratory metrics..."):
+            prompt = f"""
+            Analyze the following medical report text and provide:
+            1. Summary of Abnormal or High-Risk Values
+            2. Explanation of Key Medical Terms in Plain English
+            3. Questions to ask your primary care physician regarding these findings
+            
+            Report Data:
+            {report_text}
+            """
             res = ask_ai(prompt)
             if res:
                 st.session_state.medical_report_result = res
@@ -969,37 +851,39 @@ elif st.session_state.page == "Medical Report Analyzer":
 
 
 # ---------------------------------------------------------
-# 5. DIET & NUTRITION
+# DIET & NUTRITION
 # ---------------------------------------------------------
 elif st.session_state.page == "Diet & Nutrition":
     hero(
         "Diet & Nutrition Planner",
-        "Personalized meal plans optimized for your daily caloric needs and fitness objectives.",
+        "Personalized meal plans optimized for your daily caloric targets and wellness goals.",
         "NUTRITION SUITE",
     )
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        goal = st.selectbox("Goal:", ["Weight Loss", "Muscle Gain", "Maintenance", "Keto", "Balanced"])
+        goal = st.selectbox("Diet Goal:", ["Weight Loss", "Muscle Building", "Maintenance", "Keto", "Diabetic Friendly", "Low Sodium"])
     with c2:
         diet_pref = st.selectbox("Preference:", ["Non-Vegetarian", "Vegetarian", "Vegan", "Eggetarian"])
     with c3:
         cals = st.number_input("Target Daily Calories:", min_value=1000, max_value=5000, value=2000, step=100)
 
+    allergies = st.text_input("Allergies / Dietary Exclusions (optional):", placeholder="e.g., Dairy-free, Peanuts")
+
     if st.button("Generate Meal Plan 🥗"):
-        with st.spinner("Creating custom nutrition blueprint..."):
-            prompt = f"Create a detailed 1-day meal plan (Breakfast, Lunch, Dinner, Snacks) for a target of {cals} calories. Goal: {goal}, Preference: {diet_pref}."
+        with st.spinner("Designing tailored nutrition plan..."):
+            prompt = f"Create a structured 1-day meal plan (Breakfast, Lunch, Dinner, Snack) for a total target of {cals} kcal. Goal: {goal}, Preference: {diet_pref}, Allergies/Exclusions: {allergies or 'None'}."
             res = ask_ai(prompt)
             if res:
                 st.session_state.diet_result = res
 
     if st.session_state.diet_result:
         show_result(st.session_state.diet_result)
-        pdf_download("Diet & Nutrition Plan", st.session_state.diet_result, file_name="Diet_Plan.pdf", key="diet_pdf")
+        pdf_download("Diet Plan", st.session_state.diet_result, file_name="Diet_Plan.pdf", key="diet_pdf")
 
 
 # ---------------------------------------------------------
-# 6. EXERCISE & FITNESS
+# EXERCISE & FITNESS
 # ---------------------------------------------------------
 elif st.session_state.page == "Exercise & Fitness":
     hero(
@@ -1008,41 +892,48 @@ elif st.session_state.page == "Exercise & Fitness":
         "FITNESS SUITE",
     )
 
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     with c1:
         level = st.selectbox("Fitness Level:", ["Beginner", "Intermediate", "Advanced"])
     with c2:
         equipment = st.selectbox("Equipment:", ["Full Gym", "Dumbbells Only", "Bodyweight / Home"])
+    with c3:
+        days = st.slider("Workout Days Per Week:", 1, 7, 4)
 
-    if st.button("Generate Workout Routine 🏋️‍♂️"):
-        with st.spinner("Designing workout program..."):
-            prompt = f"Create a structured workout routine for a {level} level individual with access to {equipment}."
+    if st.button("Generate Workout Plan 🏋️‍♂️"):
+        with st.spinner("Building custom workout routine..."):
+            prompt = f"Create a structured weekly workout routine for a {level} level person training {days} days per week using {equipment}."
             res = ask_ai(prompt)
             if res:
                 st.session_state.exercise_result = res
 
     if st.session_state.exercise_result:
         show_result(st.session_state.exercise_result)
-        pdf_download("Exercise Routine", st.session_state.exercise_result, file_name="Exercise_Routine.pdf", key="ex_pdf")
+        pdf_download("Exercise Routine", st.session_state.exercise_result, file_name="Workout_Plan.pdf", key="ex_pdf")
 
 
 # ---------------------------------------------------------
-# 7. SLEEP & WELLNESS
+# SLEEP & WELLNESS
 # ---------------------------------------------------------
 elif st.session_state.page == "Sleep & Wellness":
     hero(
         "Sleep & Wellness Advisor",
-        "Actionable recommendations to improve sleep quality and circadian balance.",
+        "Actionable recommendations to improve sleep quality, reduce brain fog, and optimize rest.",
         "WELLNESS ENGINE",
     )
 
-    sleep_hrs = st.slider("Average nightly sleep (hours):", 3.0, 12.0, 7.0, 0.5)
-    quality = st.select_slider("Restfulness rating:", ["Poor", "Fair", "Good", "Excellent"])
+    c1, c2 = st.columns(2)
+    with c1:
+        sleep_hrs = st.slider("Average Nightly Sleep (Hours):", 3.0, 12.0, 7.0, 0.5)
+    with c2:
+        quality = st.select_slider("Restfulness Rating:", ["Poor", "Fair", "Good", "Excellent"])
+
+    issues = st.multiselect("Common Sleep Disturbers:", ["Trouble Falling Asleep", "Waking Up Frequently", "Morning Grogginess", "Daytime Fatigue", "Night Stress"])
 
     if st.button("Analyze Sleep Profile 🌙"):
         st.session_state.sleep = sleep_hrs
-        with st.spinner("Evaluating sleep parameters..."):
-            prompt = f"Provide tailored sleep optimization advice for someone sleeping {sleep_hrs} hours per night with a self-reported restfulness rating of '{quality}'."
+        with st.spinner("Generating circadian optimization guide..."):
+            prompt = f"Provide personalized sleep hygiene and recovery advice for someone sleeping {sleep_hrs} hours per night with rest quality '{quality}'. Main challenges: {', '.join(issues) if issues else 'None'}."
             res = ask_ai(prompt)
             if res:
                 st.session_state.sleep_result = res
@@ -1053,31 +944,31 @@ elif st.session_state.page == "Sleep & Wellness":
 
 
 # ---------------------------------------------------------
-# 8. MASTER HEALTH SUMMARY
+# MASTER HEALTH SUMMARY
 # ---------------------------------------------------------
 elif st.session_state.page == "Master Health Summary":
     hero(
         "Master Health Summary",
-        "Consolidated health record compiling all analyses generated during your session.",
+        "Consolidated medical record compiling all metrics and analyses generated during your session.",
         "EXECUTIVE REPORT",
     )
 
     summary_text = generate_master_summary()
 
-    st.markdown('<div class="master-card">', unsafe_allow_html=True)
+    st.markdown('<div class="result">', unsafe_allow_html=True)
     st.markdown(summary_text)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    pdf_download("Master Health Summary Report", summary_text, file_name="Master_Health_Summary.pdf", button_label="📄 Download Full Master Health Report", key="master_pdf")
+    pdf_download("Master Health Summary Report", summary_text, file_name="Master_Health_Summary.pdf", button_label="📄 Download Full Master PDF Report", key="master_pdf")
 
 
 # ---------------------------------------------------------
-# 9. SETTINGS
+# SETTINGS
 # ---------------------------------------------------------
 elif st.session_state.page == "Settings":
     hero(
         "Application Settings",
-        "Customize visual themes, animations, typography, and AI model backends.",
+        "Customize theme themes, font scaling, animations, and AI model backends.",
         "CONFIGURATION",
     )
 
@@ -1097,7 +988,7 @@ elif st.session_state.page == "Settings":
     with st.container(border=True):
         st.subheader("⚙️ AI Engine Configuration")
         model_index = VALID_MODELS.index(st.session_state.ai_model) if st.session_state.ai_model in VALID_MODELS else 0
-        selected_model = st.selectbox("Gemini Model:", VALID_MODELS, index=model_index)
+        selected_model = st.selectbox("Preferred Gemini Model:", VALID_MODELS, index=model_index)
 
     if st.button("Save Settings 💾", type="primary"):
         st.session_state.accent = selected_accent
@@ -1110,13 +1001,13 @@ elif st.session_state.page == "Settings":
 
 
 # =========================================================
-# FOOTER
+# 10. FOOTER
 # =========================================================
 st.markdown(
     """
     <div class="footer">
         HealthMate AI • Educational & Triage Platform<br>
-        <i>Disclaimer: This platform provides AI-generated assistance for educational purposes only and does not replace professional medical evaluation.</i>
+        <i>Disclaimer: This application is for educational purposes only and does not replace professional medical evaluation or diagnosis.</i>
     </div>
     """,
     unsafe_allow_html=True,
