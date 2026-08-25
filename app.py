@@ -61,7 +61,7 @@ components.html(
 # =========================================================
 # SESSION STATE INITIALIZATION
 # =========================================================
-VALID_MODELS = ["gemini-2.5-flash", "gemini-2.5-pro"]
+VALID_MODELS = ["gemini-3.6-flash", "gemini-3.6-pro"]
 
 session_defaults = {
     "page": "Home",
@@ -82,16 +82,16 @@ session_defaults = {
     "enable_animations": True,
     "anim_speed": "Normal (15s)",
     "font_scale": "Balanced",
-    "ai_model": "gemini-2.5-flash",
+    "ai_model": "gemini-3.6-flash",
 }
 
 for key, default_value in session_defaults.items():
     if key not in st.session_state:
         st.session_state[key] = default_value
 
-# Force reset if an invalid model name was saved in state
+# Force reset if an outdated model name was saved in active session state
 if st.session_state.ai_model not in VALID_MODELS:
-    st.session_state.ai_model = "gemini-2.5-flash"
+    st.session_state.ai_model = "gemini-3.6-flash"
 
 
 # =========================================================
@@ -112,7 +112,7 @@ client = get_client()
 
 
 def ask_ai(prompt, model=None):
-    """Executes requests using valid Google GenAI model endpoints."""
+    """Executes requests using updated Google GenAI model endpoints."""
     if client is None:
         st.error(
             "Gemini API is not configured. Please add GEMINI_API_KEY "
@@ -122,7 +122,7 @@ def ask_ai(prompt, model=None):
 
     selected_model = model or st.session_state.ai_model
     if selected_model not in VALID_MODELS:
-        selected_model = "gemini-2.5-flash"
+        selected_model = "gemini-3.6-flash"
 
     try:
         response = client.models.generate_content(
