@@ -1,7 +1,22 @@
+import os
 import time
 import streamlit as st
-from google import genai
-from google.genai import types
+from PIL import Image
+
+# =========================================================
+# SDK IMPORT & COMPATIBILITY LAYER
+# =========================================================
+SDK_TYPE = None
+try:
+    from google import genai
+    from google.genai import types
+    SDK_TYPE = "genai"
+except ImportError:
+    try:
+        import google.generativeai as genai
+        SDK_TYPE = "generativeai"
+    except ImportError:
+        SDK_TYPE = None
 
 # PDF Generator Import
 try:
@@ -39,56 +54,84 @@ for key, default_value in session_defaults.items():
 
 
 # =========================================================
-# GEMINI CLIENT & RETRY HANDLER
+# GEMINI CLIENT & API CALL RETRY HANDLER
 # =========================================================
-def get_client():
-    """Fetches a fresh client using the latest API key in secrets."""
-    try:
-        key = st.secrets.get("GEMINI_API_KEY")
-        if key:
-            return genai.Client(api_key=key)
-    except Exception:
-        pass
-    return None
+def get_api_key():
+    """Retrieves API key from Streamlit secrets or environment variables."""
+    key = st.secrets.get("GEMINI_API_KEY") if hasattr(st, "secrets") else None
+    if not key:
+        key = os.environ.get("GEMINI_API_KEY")
+    return key
 
 
-def ask_ai(prompt, model="gemini-3.6-flash", max_retries=3):
-    """Reusable Gemini API call function with dynamic client retrieval and rate-limit retries."""
-    client = get_client()
-    if client is None:
+def ask_ai(prompt, image=None, max_retries=3):
+    """Unified API execution supporting retries, quota limits, and SDK fallback."""
+    api_key = get_api_key()
+    if not api_key:
         st.error(
-            "Gemini API key is missing or invalid. Please set GEMINI_API_KEY "
-            "in .streamlit/secrets.toml."
+            "🔑 API Key Missing: Please set `GEMINI_API_KEY` in `.streamlit/secrets.toml` or environment variables."
         )
         return None
 
-    for attempt in range(max_retries):
-        try:
-            response = client.models.generate_content(
-                model=model,
-                contents=prompt,
-            )
-            return response.text
-        except Exception as exc:
-            err_msg = str(exc)
-            if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
-                if attempt < max_retries - 1:
-                    time.sleep(2 * (attempt + 1))  # Wait 2s, then 4s before retrying
-                    continue
-                else:
-                    st.warning(
-                        "⏳ Rate Limit Reached (429): Google limits requests per minute for free tier API keys. "
-                        "Please wait ~60 seconds and try again."
+    if SDK_TYPE is None:
+        st.error("SDK Error: Please install google-genai or google-generativeai (`pip install google-genai`).")
+        return None
+
+    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash"]
+    
+    for model_name in models_to_try:
+        for attempt in range(max_retries):
+            try:
+                if SDK_TYPE == "genai":
+                    client = genai.Client(api_key=api_key)
+                    if image:
+                        bytes_data = image.getvalue()
+                        content_payload = [
+                            types.Part.from_bytes(data=bytes_data, mime_type=image.type),
+                            prompt,
+                        ]
+                    else:
+                        content_payload = prompt
+
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=content_payload,
                     )
+                    return response.text
+
+                elif SDK_TYPE == "generativeai":
+                    genai.configure(api_key=api_key)
+                    model = genai.GenerativeModel(model_name)
+                    if image:
+                        img_pil = Image.open(image)
+                        response = model.generate_content([img_pil, prompt])
+                    else:
+                        response = model.generate_content(prompt)
+                    return response.text
+
+            except Exception as exc:
+                err_msg = str(exc)
+                if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+                    if attempt < max_retries - 1:
+                        time.sleep(2 * (attempt + 1))
+                        continue
+                    else:
+                        st.warning(
+                            "⏳ Rate Limit Reached (429): Google free tier quota exceeded. "
+                            "Please wait about 60 seconds before submitting another request."
+                        )
+                        return None
+                elif "404" in err_msg or "not found" in err_msg.lower():
+                    # Fallback to next model if current model isn't available
+                    break
+                else:
+                    st.error(f"API Error: {exc}")
                     return None
-            else:
-                st.error(f"Gemini request failed: {exc}")
-                return None
     return None
 
 
 # =========================================================
-# THEME CONFIGURATION (COLOR-ENRICHED PALETTE)
+# THEME CONFIGURATION
 # =========================================================
 accent_colors = {
     "Cyan": "#00f2fe",
@@ -98,9 +141,7 @@ accent_colors = {
 }
 
 accent = accent_colors.get(st.session_state.accent, "#00f2fe")
-
 background = "#131b38"
-sidebar_bg = "#111827"
 surface = "rgba(30, 41, 78, 0.72)"
 surface2 = "rgba(45, 62, 115, 0.75)"
 text = "#ffffff"
@@ -111,7 +152,7 @@ glass_blur = "blur(20px)"
 
 
 # =========================================================
-# STYLESHEET WITH COLORFUL BACKGROUND ANIMATION
+# STYLESHEET
 # =========================================================
 st.markdown(
     f"""
@@ -142,46 +183,6 @@ st.markdown(
     0% {{ background-position: 0% 20%; }}
     50% {{ background-position: 100% 80%; }}
     100% {{ background-position: 0% 20%; }}
-}}
-
-.stApp::before {{
-    content: '';
-    position: fixed;
-    top: -150px;
-    left: -150px;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(0, 242, 254, 0.35) 0%, rgba(56, 189, 248, 0.15) 45%, transparent 70%);
-    filter: blur(50px);
-    z-index: 0;
-    pointer-events: none;
-    animation: floatOrbOne 18s ease-in-out infinite alternate;
-}}
-
-.stApp::after {{
-    content: '';
-    position: fixed;
-    bottom: -150px;
-    right: -150px;
-    width: 650px;
-    height: 650px;
-    background: radial-gradient(circle, rgba(192, 132, 252, 0.32) 0%, rgba(236, 72, 153, 0.18) 50%, transparent 70%);
-    filter: blur(55px);
-    z-index: 0;
-    pointer-events: none;
-    animation: floatOrbTwo 16s ease-in-out infinite alternate;
-}}
-
-@keyframes floatOrbOne {{
-    0% {{ transform: translate(0, 0) scale(1); }}
-    50% {{ transform: translate(120px, 90px) scale(1.15); }}
-    100% {{ transform: translate(40px, 140px) scale(0.95); }}
-}}
-
-@keyframes floatOrbTwo {{
-    0% {{ transform: translate(0, 0) scale(1); }}
-    50% {{ transform: translate(-100px, -110px) scale(1.12); }}
-    100% {{ transform: translate(-30px, -160px) scale(0.92); }}
 }}
 
 [data-testid="stSidebar"] {{
@@ -292,18 +293,12 @@ h1, h2, h3, h4, h5, h6 {{
     transform: translateY(-5px);
     border-color: var(--accent);
     box-shadow: 0 16px 36px -6px rgba(0, 242, 254, 0.35);
-    background: linear-gradient(145deg, rgba(46, 62, 116, 0.9) 0%, rgba(32, 45, 87, 0.85) 100%);
 }}
 
 .card .icon {{
     font-size: 42px !important;
     line-height: 1;
     filter: drop-shadow(0 0 12px rgba(0, 242, 254, 0.45));
-    transition: transform 0.3s ease;
-}}
-
-.card:hover .icon {{
-    transform: scale(1.12);
 }}
 
 .card .label {{
@@ -339,16 +334,6 @@ h1, h2, h3, h4, h5, h6 {{
     padding: 24px;
     min-height: 140px;
     box-shadow: var(--shadow);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}}
-
-.tool:hover {{
-    border-color: rgba(0, 242, 254, 0.45);
-    background: linear-gradient(145deg, rgba(46, 62, 116, 0.9) 0%, rgba(32, 45, 87, 0.85) 100%);
-}}
-
-.tool-static {{
-    border-radius: 22px !important;
 }}
 
 .tool b {{
@@ -372,11 +357,6 @@ h1, h2, h3, h4, h5, h6 {{
     font-size: 44px !important;
     display: inline-block;
     filter: drop-shadow(0 0 12px rgba(0, 242, 254, 0.45));
-    transition: transform 0.3s ease;
-}}
-
-.tool:hover .tool-icon {{
-    transform: scale(1.12);
 }}
 
 .status {{
@@ -391,22 +371,6 @@ h1, h2, h3, h4, h5, h6 {{
     font-size: 11px;
     font-weight: 800;
     letter-spacing: 1px;
-    box-shadow: 0 0 14px rgba(0, 242, 254, 0.25);
-}}
-
-.dot {{
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 10px var(--accent);
-    animation: pulseGlow 1.8s infinite;
-}}
-
-@keyframes pulseGlow {{
-    0% {{ transform: scale(0.9); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.7); }}
-    70% {{ transform: scale(1.15); box-shadow: 0 0 0 7px rgba(0, 242, 254, 0); }}
-    100% {{ transform: scale(0.9); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0); }}
 }}
 
 .result {{
@@ -430,7 +394,7 @@ h1, h2, h3, h4, h5, h6 {{
     color: #ffffff;
     font-weight: 600;
     padding: 11px 22px;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.25s ease;
     width: 100%;
 }}
 
@@ -439,7 +403,6 @@ h1, h2, h3, h4, h5, h6 {{
     color: var(--accent);
     background: linear-gradient(135deg, rgba(58, 78, 142, 1) 0%, rgba(42, 60, 114, 1) 100%);
     box-shadow: 0 6px 20px rgba(0, 242, 254, 0.35);
-    transform: translateY(-2px);
 }}
 
 div[data-testid="stColumn"] .stButton > button {{
@@ -466,7 +429,7 @@ div[data-testid="stColumn"] .stButton > button {{
 
 
 # =========================================================
-# UI REUSABLE HELPERS
+# UI HELPERS
 # =========================================================
 def hero(title, subtitle, kicker="HEALTHMATE AI"):
     st.markdown(
@@ -496,10 +459,9 @@ def card(icon, label, value, desc=""):
 
 
 def tool(icon, title, description, target_page=None):
-    extra_class = "" if target_page else "tool-static"
     st.markdown(
         f"""
-        <div class="tool {extra_class}">
+        <div class="tool">
             <div class="tool-icon">{icon}</div>
             <div><b>{title}</b></div>
             <p>{description}</p>
@@ -508,11 +470,7 @@ def tool(icon, title, description, target_page=None):
         unsafe_allow_html=True,
     )
     if target_page:
-        if st.button(
-            f"Open {title}",
-            key=f"nav_btn_{target_page}",
-            use_container_width=True,
-        ):
+        if st.button(f"Open {title}", key=f"nav_btn_{target_page}"):
             st.session_state.page = target_page
             st.rerun()
 
@@ -525,7 +483,7 @@ def show_result(text):
 
 def pdf_download(heading_or_input, answer, file_name="Health_Report.pdf", button_label="📄 Download Health Report", key=None):
     if create_pdf is None:
-        st.warning("PDF module is unavailable. Keep your report.py in the project folder.")
+        st.warning("PDF module unavailable. Keep report.py in your app folder to enable downloads.")
         return
 
     try:
@@ -595,10 +553,7 @@ with st.sidebar:
                 HEALTH INTELLIGENCE
             </div>
             <div style="margin-top:14px;">
-                <span class="status">
-                    <span class="dot"></span>
-                    SYSTEM ONLINE
-                </span>
+                <span class="status">● SYSTEM ONLINE</span>
             </div>
         </div>
         """,
@@ -618,726 +573,233 @@ with st.sidebar:
 
     st.session_state.page = selected_label.split("  ", 1)[1]
 
-
 page = st.session_state.page
 
 
 # =========================================================
-# PAGE: HOME
+# ROUTING BY PAGE
 # =========================================================
-if page == "Home":
-    hero(
-        "HealthMate AI",
-        "Your intelligent health companion for general wellness, calculations, planning, and AI-powered educational assistance.",
-        "AI HEALTH PLATFORM",
-    )
 
-    st.markdown("### Explore HealthMate Features", unsafe_allow_html=True)
+if page == "Home":
+    hero("HealthMate AI", "Your intelligent health companion for general wellness, calculations, and AI educational assistance.")
+    st.markdown("### Explore HealthMate Features")
 
     r1 = st.columns(3)
     with r1[0]:
-        tool(
-            "🩺",
-            "AI Symptom Checker",
-            "Describe symptoms for general educational guidance.",
-            target_page="AI Symptom Checker",
-        )
+        tool("🩺", "AI Symptom Checker", "Describe symptoms for general educational guidance.", "AI Symptom Checker")
     with r1[1]:
-        tool(
-            "💊",
-            "Medicine Info",
-            "Learn general information about medicines.",
-            target_page="Medicine Info",
-        )
+        tool("💊", "Medicine Info", "Learn general information about medicines.", "Medicine Info")
     with r1[2]:
-        tool(
-            "📈",
-            "Health Dashboard",
-            "See values calculated during this session.",
-            target_page="Health Dashboard",
-        )
+        tool("📈", "Health Dashboard", "See values calculated during this session.", "Health Dashboard")
 
     st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
 
     r2 = st.columns(3)
     with r2[0]:
-        tool(
-            "📊",
-            "BMI Calculator",
-            "Calculate BMI from height and weight.",
-            target_page="BMI Calculator",
-        )
+        tool("📊", "BMI Calculator", "Calculate BMI from height and weight.", "BMI Calculator")
     with r2[1]:
-        tool(
-            "💧",
-            "Water Intake",
-            "Estimate general daily water needs.",
-            target_page="Water Intake",
-        )
+        tool("💧", "Water Intake", "Estimate general daily water needs.", "Water Intake")
     with r2[2]:
-        tool(
-            "🥗",
-            "Diet Planner",
-            "Generate a simple Indian diet plan.",
-            target_page="Diet Planner",
-        )
+        tool("🥗", "Diet Planner", "Generate a simple Indian diet plan.", "Diet Planner")
 
     st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
 
     r3 = st.columns(3)
     with r3[0]:
-        tool(
-            "🏋️‍♂️",
-            "Exercise Planner",
-            "Generate simple workout plans tailored to goals.",
-            target_page="Exercise Planner",
-        )
+        tool("🏋️‍♂️", "Exercise Planner", "Generate simple workout plans tailored to goals.", "Exercise Planner")
     with r3[1]:
-        tool(
-            "🔥",
-            "Calorie Calculator",
-            "Estimate calories and macros from meal descriptions.",
-            target_page="Calorie Calculator",
-        )
+        tool("🔥", "Calorie Calculator", "Estimate calories and macros from meal descriptions.", "Calorie Calculator")
     with r3[2]:
-        tool(
-            "😴",
-            "Sleep Recommendation",
-            "Get personalized guidance for healthy sleep habits.",
-            target_page="Sleep Recommendation",
-        )
+        tool("😴", "Sleep Recommendation", "Get personalized guidance for healthy sleep habits.", "Sleep Recommendation")
 
     st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
 
     r4 = st.columns(3)
     with r4[0]:
-        tool(
-            "🔬",
-            "Medical Report Analyzer",
-            "Upload image reports for educational AI breakdown.",
-            target_page="Medical Report Analyzer",
-        )
+        tool("🔬", "Medical Report Analyzer", "Upload image reports for educational AI breakdown.", "Medical Report Analyzer")
     with r4[1]:
-        tool(
-            "💬",
-            "AI Command Center",
-            "Ask general health & wellness questions in interactive chat.",
-            target_page="AI Command Center",
-        )
-
-    st.markdown("<br><br>", unsafe_allow_html=True)
-
-    st.markdown("### System Status", unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    with c1:
-        card("🛠️", "Tools", "12+", "Health utilities")
-    with c2:
-        card("📄", "Reports", "PDF", "Downloadable reports")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.info(
-        "ℹ️ HealthMate AI provides general educational information only and is not a substitute for professional medical advice."
-    )
+        tool("💬", "AI Command Center", "Ask general health & wellness questions in chat.", "AI Command Center")
 
 
-# =========================================================
-# PAGE: AI SYMPTOM CHECKER
-# =========================================================
 elif page == "AI Symptom Checker":
-    hero(
-        "AI Symptom Checker",
-        "Describe your symptoms and receive general educational information from Gemini.",
-    )
-
-    symptoms = st.chat_input(
-        "Describe your symptoms...",
-        key="symptoms_input",
-    )
-
+    hero("AI Symptom Checker", "Describe your symptoms and receive general educational information from Gemini.")
+    symptoms = st.chat_input("Describe your symptoms...", key="symptoms_input")
     if symptoms:
         with st.chat_message("user"):
             st.write(symptoms)
-
         with st.chat_message("assistant"):
             with st.spinner("Analyzing symptoms..."):
                 answer = ask_ai(
-                    f"""
-You are HealthMate AI, a general health education assistant.
-
-User symptoms:
-{symptoms}
-
-Give general educational information.
-Do not diagnose.
-Do not prescribe medication.
-Mention important warning signs and when professional medical care may be needed.
-Keep the language simple.
-"""
+                    f"You are HealthMate AI. Provide educational health information for these symptoms without prescribing or diagnosing: {symptoms}"
                 )
-
             if answer:
                 st.write(answer)
-                pdf_download(
-                    symptoms,
-                    answer,
-                    file_name="Symptom_Report.pdf",
-                    button_label="📄 Download Symptom Report",
-                    key="pdf_symptoms",
-                )
-
-        st.info(
-            "ℹ️ This response is educational and should not be treated as a medical diagnosis."
-        )
+                pdf_download(symptoms, answer, "Symptom_Report.pdf", "📄 Download Symptom Report", key="pdf_symptoms")
 
 
-# =========================================================
-# PAGE: MEDICINE INFO
-# =========================================================
 elif page == "Medicine Info":
-    hero(
-        "Medicine Information",
-        "Get simple educational information about a medicine without receiving a prescription.",
-    )
-
-    medicine = st.text_input(
-        "Medicine name",
-        placeholder="Example: Paracetamol",
-    )
-
+    hero("Medicine Information", "Get simple educational information about a medicine.")
+    medicine = st.text_input("Medicine name", placeholder="Example: Paracetamol")
     if st.button("💊 Get Medicine Information"):
-        if not medicine.strip():
-            st.warning("Please enter a medicine name.")
-        else:
-            with st.spinner("Preparing information..."):
+        if medicine.strip():
+            with st.spinner("Fetching details..."):
                 answer = ask_ai(
-                    f"""
-Provide general educational information about:
-
-Medicine: {medicine}
-
-Include:
-- What it is generally used for
-- Common side effects
-- Precautions
-- When to consult a doctor
-
-Keep the language simple.
-Do not prescribe a dose.
-Do not personalize treatment.
-"""
+                    f"Provide simple educational info (usage, side effects, precautions) for medicine: {medicine}. Do not give dosage or prescription."
                 )
-
             if answer:
-                st.success("Information ready")
                 show_result(answer)
-                pdf_download(
-                    f"Medicine Information: {medicine}",
-                    answer,
-                    file_name=f"Medicine_Info_{medicine}.pdf",
-                    button_label="📄 Download Medicine Guide",
-                    key="pdf_med",
-                )
-
-            st.info("ℹ️ Consult a qualified healthcare professional before taking medicines.")
+                pdf_download(f"Medicine Info: {medicine}", answer, f"Medicine_{medicine}.pdf", "📄 Download Guide", key="pdf_med")
 
 
-# =========================================================
-# PAGE: BMI CALCULATOR
-# =========================================================
 elif page == "BMI Calculator":
-    hero(
-        "BMI Calculator",
-        "Calculate your Body Mass Index using height and weight.",
-        "BODY METRICS",
-    )
-
-    unit_choice = st.radio(
-        "Height Unit",
-        ["Centimeters (cm)", "Feet & Inches (ft + in)"],
-        horizontal=True,
-    )
+    hero("BMI Calculator", "Calculate your Body Mass Index using height and weight.", "BODY METRICS")
+    unit_choice = st.radio("Height Unit", ["Centimeters (cm)", "Feet & Inches (ft + in)"], horizontal=True)
 
     c1, c2 = st.columns(2)
     with c1:
         if unit_choice == "Centimeters (cm)":
-            height = st.number_input(
-                "Height (cm)",
-                min_value=50.0,
-                max_value=250.0,
-                value=170.0,
-                step=0.5,
-            )
+            height = st.number_input("Height (cm)", 50.0, 250.0, 170.0, 0.5)
             height_m = height / 100.0
         else:
             f_col, i_col = st.columns(2)
-            with f_col:
-                feet = st.number_input("Feet (ft)", min_value=1, max_value=8, value=5, step=1)
-            with i_col:
-                inches = st.number_input("Inches (in)", min_value=0, max_value=11, value=7, step=1)
-            total_inches = (feet * 12) + inches
-            height_m = total_inches * 0.0254
-
+            feet = f_col.number_input("Feet (ft)", 1, 8, 5)
+            inches = i_col.number_input("Inches (in)", 0, 11, 7)
+            height_m = ((feet * 12) + inches) * 0.0254
     with c2:
-        weight = st.number_input(
-            "Weight (kg)",
-            min_value=10.0,
-            max_value=300.0,
-            value=65.0,
-            step=0.5,
-        )
+        weight = st.number_input("Weight (kg)", 10.0, 300.0, 65.0, 0.5)
 
     if st.button("📊 Calculate BMI"):
         if height_m > 0:
             bmi = weight / (height_m * height_m)
             st.session_state.bmi = bmi
-
-            if bmi < 18.5:
-                category = "Underweight"
-            elif bmi < 25:
-                category = "Healthy Weight"
-            elif bmi < 30:
-                category = "Overweight"
-            else:
-                category = "Obesity"
-
+            cat = "Underweight" if bmi < 18.5 else ("Healthy Weight" if bmi < 25 else ("Overweight" if bmi < 30 else "Obesity"))
             st.markdown("<br>", unsafe_allow_html=True)
             a, b = st.columns(2)
-            with a:
-                card("📊", "BMI", f"{bmi:.2f}", "Calculated value")
-            with b:
-                card("⚖️", "Category", category, "General BMI category")
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.info(
-                "BMI is a general screening measure and should not be used as the only measure of health."
-            )
+            with a: card("📊", "BMI", f"{bmi:.2f}", "Calculated value")
+            with b: card("⚖️", "Category", cat, "General classification")
 
 
-# =========================================================
-# PAGE: WATER INTAKE
-# =========================================================
 elif page == "Water Intake":
-    hero(
-        "Water Intake Calculator",
-        "Estimate general daily water intake from body weight.",
-        "HYDRATION",
-    )
-
-    weight = st.number_input(
-        "Weight (kg)",
-        min_value=10.0,
-        max_value=250.0,
-        value=60.0,
-        step=0.5,
-    )
-
+    hero("Water Intake Calculator", "Estimate general daily water intake from body weight.", "HYDRATION")
+    weight = st.number_input("Weight (kg)", 10.0, 250.0, 60.0, 0.5)
     if st.button("💧 Calculate Water Intake"):
         water_ml = weight * 35
-        litres = water_ml / 1000
+        litres = water_ml / 1000.0
         st.session_state.water = litres
-
         st.markdown("<br>", unsafe_allow_html=True)
         a, b = st.columns(2)
-        with a:
-            card("💧", "Recommended", f"{litres:.2f} L", "General daily estimate")
-        with b:
-            card("🥤", "Millilitres", f"{water_ml:.0f} ml", "Per day estimate")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.info("Your actual needs can vary with climate, activity, diet, and health.")
+        with a: card("💧", "Recommended", f"{litres:.2f} L", "Daily Target")
+        with b: card("🥤", "Millilitres", f"{water_ml:.0f} ml", "Per Day Estimate")
 
 
-# =========================================================
-# PAGE: DIET PLANNER
-# =========================================================
 elif page == "Diet Planner":
-    hero(
-        "AI Diet Planner",
-        "Generate a simple one-day Indian diet plan.",
-        "NUTRITION AI",
-    )
-
+    hero("AI Diet Planner", "Generate a simple one-day Indian diet plan.", "NUTRITION AI")
     c1, c2, c3 = st.columns(3)
-    with c1:
-        age = st.number_input("Age", 1, 100, 18)
-    with c2:
-        gender = st.selectbox("Gender", ["Male", "Female"])
-    with c3:
-        goal = st.selectbox(
-            "Goal",
-            ["Weight Loss", "Weight Gain", "Healthy Lifestyle"],
-        )
-
+    age = c1.number_input("Age", 1, 100, 18)
+    gender = c2.selectbox("Gender", ["Male", "Female"])
+    goal = c3.selectbox("Goal", ["Weight Loss", "Weight Gain", "Healthy Lifestyle"])
     if st.button("🥗 Generate Diet Plan"):
-        with st.spinner("Generating diet plan..."):
-            answer = ask_ai(
-                f"""
-Create a simple one-day Indian diet plan.
-
-Age: {age}
-Gender: {gender}
-Goal: {goal}
-
-Include:
-Breakfast
-Lunch
-Evening Snack
-Dinner
-Healthy Tips
-
-Keep it simple.
-Do not provide medical treatment.
-"""
-            )
-
+        with st.spinner("Generating plan..."):
+            answer = ask_ai(f"Create a simple one-day Indian diet plan for a {age}yo {gender} aiming for {goal}.")
         if answer:
-            st.success("Diet plan ready")
             show_result(answer)
-            pdf_download(
-                f"Diet Plan ({goal} | Age: {age}, Gender: {gender})",
-                answer,
-                file_name=f"Diet_Plan_{goal.replace(' ', '_')}.pdf",
-                button_label="📄 Download Diet Plan",
-                key="pdf_diet",
-            )
+            pdf_download(f"Diet Plan ({goal})", answer, "Diet_Plan.pdf", "📄 Download Diet Plan", key="pdf_diet")
 
 
-# =========================================================
-# PAGE: EXERCISE PLANNER
-# =========================================================
 elif page == "Exercise Planner":
-    hero(
-        "AI Exercise Planner",
-        "Generate a simple one-day exercise plan based on fitness level and goal.",
-        "FITNESS AI",
-    )
-
+    hero("AI Exercise Planner", "Generate a simple daily fitness routine.", "FITNESS AI")
     c1, c2, c3 = st.columns(3)
-    with c1:
-        age = st.number_input("Age", 5, 100, 18)
-    with c2:
-        fitness = st.selectbox(
-            "Fitness Level",
-            ["Beginner", "Intermediate", "Advanced"],
-        )
-    with c3:
-        goal = st.selectbox(
-            "Goal",
-            ["Weight Loss", "Muscle Gain", "Stay Fit"],
-        )
-
-    if st.button("🏋️‍♂️ Generate Exercise Plan"):
-        with st.spinner("Generating workout plan..."):
-            answer = ask_ai(
-                f"""
-Create a simple one-day exercise plan.
-
-Age: {age}
-Fitness Level: {fitness}
-Goal: {goal}
-
-Include:
-- Warm-up
-- Main Exercises
-- Stretching
-- Safety Tips
-
-Keep it simple and suitable for students.
-"""
-            )
-
+    age = c1.number_input("Age", 5, 100, 18)
+    fitness = c2.selectbox("Level", ["Beginner", "Intermediate", "Advanced"])
+    goal = c3.selectbox("Goal", ["Weight Loss", "Muscle Gain", "Stay Fit"])
+    if st.button("🏋️‍♂️ Generate Workout Plan"):
+        with st.spinner("Creating routine..."):
+            answer = ask_ai(f"Create a simple safe 1-day exercise plan for a {fitness} level {age}yo user with goal: {goal}.")
         if answer:
-            st.success("Exercise plan ready")
             show_result(answer)
-            pdf_download(
-                f"Exercise Plan ({fitness} | {goal} | Age: {age})",
-                answer,
-                file_name=f"Exercise_Plan_{goal.replace(' ', '_')}.pdf",
-                button_label="📄 Download Workout Plan",
-                key="pdf_exercise",
-            )
+            pdf_download(f"Workout Plan", answer, "Workout_Plan.pdf", "📄 Download Workout Plan", key="pdf_ex")
 
 
-# =========================================================
-# PAGE: CALORIE CALCULATOR
-# =========================================================
 elif page == "Calorie Calculator":
-    hero(
-        "AI Calorie Calculator",
-        "Describe what you ate and get an estimated calorie and nutrition breakdown.",
-        "NUTRITION ANALYTICS",
-    )
-
-    food = st.text_area(
-        "What did you eat today?",
-        placeholder="Example: 2 chapati, dal, rice, salad, and milk",
-        height=120,
-    )
-
+    hero("AI Calorie Calculator", "Estimate calories and macros from your meal.", "NUTRITION ANALYTICS")
+    food = st.text_area("What did you eat today?", placeholder="Example: 2 chapati, dal, rice, salad")
     if st.button("🔥 Calculate Calories"):
-        if not food.strip():
-            st.warning("Please enter your food items.")
-        else:
-            with st.spinner("Estimating nutrition..."):
-                answer = ask_ai(
-                    f"""
-Estimate the nutrition for this food:
-
-{food}
-
-Include:
-- Estimated total calories
-- Protein
-- Carbohydrates
-- Fat
-- Whether the meal is balanced
-- Suggestions to improve it
-
-Clearly state that the values are estimates.
-"""
-                )
-
+        if food.strip():
+            with st.spinner("Analyzing meal..."):
+                answer = ask_ai(f"Estimate total calories, protein, carbs, and fat for this meal: {food}. State clearly these are estimates.")
             if answer:
-                st.success("Estimate ready")
                 show_result(answer)
-                pdf_download(
-                    f"Calorie & Nutrition Breakdown: {food}",
-                    answer,
-                    file_name="Calorie_Report.pdf",
-                    button_label="📄 Download Nutrition Breakdown",
-                    key="pdf_calorie",
-                )
-
-            st.info("ℹ️ AI calorie estimates may be inaccurate because portion sizes vary.")
+                pdf_download("Calorie Report", answer, "Calorie_Report.pdf", "📄 Download Nutrition Report", key="pdf_cal")
 
 
-# =========================================================
-# PAGE: SLEEP RECOMMENDATION
-# =========================================================
 elif page == "Sleep Recommendation":
-    hero(
-        "Sleep Recommendation",
-        "Get general sleep guidance based on your age, sleep duration, and lifestyle.",
-        "RECOVERY AI",
-    )
-
+    hero("Sleep Guidance", "Get guidance based on sleep duration and habits.", "RECOVERY AI")
     c1, c2, c3 = st.columns(3)
-    with c1:
-        age = st.number_input("Your Age", 1, 100, 18)
-    with c2:
-        sleep_hours = st.slider(
-            "Sleep Hours",
-            1,
-            12,
-            7,
-        )
-        st.session_state.sleep = sleep_hours
-    with c3:
-        lifestyle = st.selectbox(
-            "Lifestyle",
-            ["Student", "Working Professional", "Athlete", "Senior Citizen"],
-        )
-
-    if st.button("😴 Get Sleep Advice"):
-        with st.spinner("Preparing sleep advice..."):
-            answer = ask_ai(
-                f"""
-Provide simple sleep recommendations.
-
-Age: {age}
-Sleep Hours: {sleep_hours}
-Lifestyle: {lifestyle}
-
-Include:
-- Whether the sleep duration is generally adequate
-- Tips to improve sleep quality
-- Healthy bedtime habits
-- When to consult a doctor
-
-Keep the language simple.
-"""
-            )
-
+    age = c1.number_input("Your Age", 1, 100, 18)
+    sleep_hours = c2.slider("Sleep Hours", 1, 12, 7)
+    lifestyle = c3.selectbox("Profile", ["Student", "Working Professional", "Athlete", "Senior Citizen"])
+    st.session_state.sleep = sleep_hours
+    if st.button("😴 Get Advice"):
+        with st.spinner("Analyzing rest..."):
+            answer = ask_ai(f"Provide healthy sleep advice for a {age}yo {lifestyle} getting {sleep_hours} hours of sleep.")
         if answer:
-            st.success("Sleep advice ready")
             show_result(answer)
-            pdf_download(
-                f"Sleep Guidance (Age: {age}, Hours: {sleep_hours}, Profile: {lifestyle})",
-                answer,
-                file_name="Sleep_Guidance.pdf",
-                button_label="📄 Download Sleep Guidance",
-                key="pdf_sleep",
-            )
 
 
-# =========================================================
-# PAGE: MEDICAL REPORT ANALYZER
-# =========================================================
 elif page == "Medical Report Analyzer":
-    hero(
-        "Medical Report Analyzer",
-        "Upload an image of a medical report for an educational AI breakdown.",
-        "REPORT VISION AI",
-    )
-
-    uploaded_file = st.file_uploader(
-        "Upload Report Image (JPG, PNG)", type=["jpg", "jpeg", "png"]
-    )
-
+    hero("Medical Report Analyzer", "Upload a report image for educational breakdown.", "REPORT VISION AI")
+    uploaded_file = st.file_uploader("Upload Report Image", type=["jpg", "jpeg", "png"])
     if uploaded_file is not None:
         st.image(uploaded_file, caption="Uploaded Report", use_container_width=True)
-
         if st.button("🔬 Analyze Medical Report"):
-            client = get_client()
-            if client is None:
-                st.error("Gemini API key is not configured.")
-            else:
-                with st.spinner("Analyzing report image..."):
-                    try:
-                        bytes_data = uploaded_file.getvalue()
-                        response = client.models.generate_content(
-                            model="gemini-3.6-flash",
-                            contents=[
-                                types.Part.from_bytes(
-                                    data=bytes_data,
-                                    mime_type=uploaded_file.type,
-                                ),
-                                "Analyze this medical report image for educational purposes. Explain key findings, medical terms, and reference values simply. Do not diagnose.",
-                            ],
-                        )
-                        answer = response.text
-                        if answer:
-                            st.success("Analysis Complete")
-                            show_result(answer)
-                            pdf_download(
-                                "Medical Report Analysis",
-                                answer,
-                                file_name="Report_Analysis.pdf",
-                                button_label="📄 Download Report Analysis",
-                                key="pdf_report",
-                            )
-                    except Exception as exc:
-                        if "429" in str(exc) or "RESOURCE_EXHAUSTED" in str(exc):
-                            st.warning("⏳ Free Tier Quota Exceeded (429): Please wait ~60 seconds before retrying.")
-                        else:
-                            st.error(f"Analysis failed: {exc}")
+            with st.spinner("Analyzing image..."):
+                answer = ask_ai(
+                    "Analyze this medical report image for educational purposes. Explain key findings, medical terms, and reference values simply. Do not diagnose.",
+                    image=uploaded_file,
+                )
+            if answer:
+                show_result(answer)
+                pdf_download("Medical Report Analysis", answer, "Report_Analysis.pdf", "📄 Download Report Analysis", key="pdf_rep")
 
 
-# =========================================================
-# PAGE: HEALTH DASHBOARD
-# =========================================================
 elif page == "Health Dashboard":
-    hero(
-        "Health Dashboard",
-        "Overview of metrics calculated during your current session.",
-        "SESSION METRICS",
-    )
-
+    hero("Health Dashboard", "Overview of metrics calculated during this session.", "SESSION METRICS")
     c1, c2, c3 = st.columns(3)
-    with c1:
-        bmi_val = (
-            f"{st.session_state.bmi:.2f}"
-            if st.session_state.bmi is not None
-            else "Not Calculated"
-        )
-        card("📊", "Body Mass Index", bmi_val, "Session BMI Value")
-    with c2:
-        water_val = (
-            f"{st.session_state.water:.2f} L"
-            if st.session_state.water is not None
-            else "Not Calculated"
-        )
-        card("💧", "Daily Water Goal", water_val, "Hydration Estimate")
-    with c3:
-        sleep_val = (
-            f"{st.session_state.sleep} Hours"
-            if st.session_state.sleep is not None
-            else "Not Recorded"
-        )
-        card("😴", "Target Sleep", sleep_val, "Nightly Rest")
+    c1.metric("Body Mass Index", f"{st.session_state.bmi:.2f}" if st.session_state.bmi else "Not Calculated")
+    c2.metric("Daily Water Goal", f"{st.session_state.water:.2f} L" if st.session_state.water else "Not Calculated")
+    c3.metric("Target Sleep", f"{st.session_state.sleep} Hours" if st.session_state.sleep else "Not Recorded")
 
 
-# =========================================================
-# PAGE: AI COMMAND CENTER
-# =========================================================
 elif page == "AI Command Center":
-    hero(
-        "AI Command Center",
-        "Interactive conversational AI assistant for general health and wellness questions.",
-        "INTERACTIVE CHAT",
-    )
-
+    hero("AI Command Center", "Interactive health & wellness chat assistant.", "INTERACTIVE CHAT")
     for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
-
-    user_query = st.chat_input("Ask any health & wellness question...")
-
+    user_query = st.chat_input("Ask any health question...")
     if user_query:
         st.session_state.chat_history.append({"role": "user", "content": user_query})
         with st.chat_message("user"):
             st.write(user_query)
-
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
-                resp = ask_ai(
-                    f"User prompt: {user_query}\nProvide educational health guidance without giving a medical diagnosis or prescription."
-                )
+                resp = ask_ai(f"Provide educational health guidance for: {user_query}")
                 if resp:
                     st.write(resp)
-                    st.session_state.chat_history.append(
-                        {"role": "assistant", "content": resp}
-                    )
+                    st.session_state.chat_history.append({"role": "assistant", "content": resp})
 
 
-# =========================================================
-# PAGE: SETTINGS
-# =========================================================
 elif page == "Settings":
-    hero(
-        "Settings",
-        "Customize theme settings and workspace options.",
-        "PREFERENCES",
-    )
-
-    selected_accent = st.selectbox(
-        "Accent Color Theme",
-        list(accent_colors.keys()),
-        index=list(accent_colors.keys()).index(st.session_state.accent),
-    )
-
+    hero("Settings", "Customize layout themes.", "PREFERENCES")
+    selected_accent = st.selectbox("Accent Color Theme", list(accent_colors.keys()), index=list(accent_colors.keys()).index(st.session_state.accent))
     if st.button("Save Settings"):
         st.session_state.accent = selected_accent
-        st.success("Settings updated successfully!")
+        st.success("Theme saved!")
         st.rerun()
 
 
-# =========================================================
-# PAGE: ABOUT
-# =========================================================
 elif page == "About":
-    hero(
-        "About HealthMate AI",
-        "Empowering individuals with educational health insights driven by modern AI.",
-        "ABOUT PLATFORM",
-    )
-
-    st.markdown(
-        """
-        ### About the Platform
-        HealthMate AI is a comprehensive wellness application designed to simplify medical educational content, track basic lifestyle metrics, and help users organize daily diet and exercise goals.
-
-        ### Key Modules
-        - **AI Symptom Checker**: Instant general insights on described symptoms.
-        - **Medicine Info**: Educational reference for common pharmaceutical usages and side effects.
-        - **Calculators**: BMI, daily water needs, and meal calorie estimates.
-        - **Planners**: Customized diet and workout schedules.
-        - **Report Vision**: Educational image analysis for laboratory reports.
-
-        ### Medical Disclaimer
-        *HealthMate AI is strictly for informational and educational purposes. It does not provide medical diagnoses, treatment plans, or prescriptions. Always consult a qualified medical professional for health concerns.*
-        """
-    )
+    hero("About HealthMate AI", "Empowering individuals with educational health insights.", "ABOUT PLATFORM")
+    st.markdown("### Educational Health Intelligence\nHealthMate AI helps users calculate lifestyle metrics, plan meals/fitness, and understand general medical terms safely.")
 
 
 # =========================================================
