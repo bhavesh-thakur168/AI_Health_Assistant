@@ -55,7 +55,7 @@ def get_client():
 client = get_client()
 
 
-def ask_ai(prompt, model="gemini-2.5-flash"):
+def ask_ai(prompt, model="gemini-3.6-flash"):
     """Lightweight, reusable Gemini AI text prompt function."""
     if client is None:
         st.error(
@@ -1184,7 +1184,7 @@ elif page == "Medical Report Analyzer":
                     try:
                         bytes_data = uploaded_file.getvalue()
                         response = client.models.generate_content(
-                            model="gemini-2.5-flash",
+                            model="gemini-3.6-flash",
                             contents=[
                                 types.Part.from_bytes(
                                     data=bytes_data,
