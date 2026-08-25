@@ -93,7 +93,7 @@ if st.session_state.ai_model not in VALID_MODELS:
 
 
 # =========================================================
-# 4. GEMINI CLIENT & RATE-LIMIT RESILIENT ENGINE (429 FIX)
+# 4. GEMINI CLIENT & RATE-LIMIT/404 RESILIENT ENGINE
 # =========================================================
 @st.cache_resource
 def get_client():
@@ -110,7 +110,7 @@ client = get_client()
 
 
 def ask_ai(prompt: str, model: str = None, max_retries: int = 3) -> str:
-    """Executes AI prompts with automatic backoff retry logic to handle rate limits (HTTP 429)."""
+    """Executes AI prompts with backoff retry logic and automatic model fallback on 404/429 errors."""
     if client is None:
         st.error(
             "⚠️ Gemini API Key missing. Please define `GEMINI_API_KEY` in your `.streamlit/secrets.toml` file."
@@ -121,7 +121,7 @@ def ask_ai(prompt: str, model: str = None, max_retries: int = 3) -> str:
     if selected_model not in VALID_MODELS:
         selected_model = "gemini-2.5-flash"
 
-    # Model fallback hierarchy if current model hits quota limit
+    # Model fallback hierarchy
     model_fallback_queue = [selected_model] + [m for m in VALID_MODELS if m != selected_model]
 
     for current_model in model_fallback_queue:
@@ -134,7 +134,10 @@ def ask_ai(prompt: str, model: str = None, max_retries: int = 3) -> str:
                 return response.text
             except Exception as exc:
                 err_msg = str(exc)
-                if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+                if "404" in err_msg or "NOT_FOUND" in err_msg:
+                    st.warning(f"⚠️ Model `{current_model}` unavailable. Falling back to alternative model...")
+                    break  # Try next model in fallback queue
+                elif "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
                     wait_time = (attempt + 1) * 6
                     st.info(f"⏳ Free quota limit reached on `{current_model}`. Retrying in {wait_time}s (Attempt {attempt + 1}/{max_retries})...")
                     time.sleep(wait_time)
@@ -143,8 +146,8 @@ def ask_ai(prompt: str, model: str = None, max_retries: int = 3) -> str:
                     return None
 
     st.error(
-        "❌ **API Quota Depleted:** Google AI Studio Free Tier rate limit exceeded across models. "
-        "Please wait 60 seconds before trying again."
+        "❌ **API Execution Failed:** All candidate Gemini models failed or reached quota limits. "
+        "Please check your API configuration."
     )
     return None
 
@@ -918,29 +921,28 @@ elif st.session_state.page == "Exercise & Fitness":
 elif st.session_state.page == "Sleep & Wellness":
     hero(
         "Sleep & Wellness Advisor",
-        "Actionable recommendations to improve sleep quality, reduce brain fog, and optimize rest.",
-        "WELLNESS ENGINE",
+        "Circadian rhythm alignment, sleep hygiene advice, and daily recovery routines.",
+        "REST & RECOVERY",
     )
 
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     with c1:
-        sleep_hrs = st.slider("Average Nightly Sleep (Hours):", 3.0, 12.0, 7.0, 0.5)
+        avg_hours = st.number_input("Average Nightly Sleep (Hours):", min_value=3.0, max_value=14.0, value=6.5, step=0.5)
     with c2:
-        quality = st.select_slider("Restfulness Rating:", ["Poor", "Fair", "Good", "Excellent"])
+        quality = st.select_slider("Sleep Quality:", options=["Restless", "Fair", "Good", "Excellent"])
+    with c3:
+        main_issue = st.selectbox("Primary Challenge:", ["Difficulty falling asleep", "Waking up frequently", "Waking up unrefreshed", "Daytime fatigue", "High stress levels"])
 
-    issues = st.multiselect("Common Sleep Disturbers:", ["Trouble Falling Asleep", "Waking Up Frequently", "Morning Grogginess", "Daytime Fatigue", "Night Stress"])
-
-    if st.button("Analyze Sleep Profile 🌙"):
-        st.session_state.sleep = sleep_hrs
-        with st.spinner("Generating circadian optimization guide..."):
-            prompt = f"Provide personalized sleep hygiene and recovery advice for someone sleeping {sleep_hrs} hours per night with rest quality '{quality}'. Main challenges: {', '.join(issues) if issues else 'None'}."
+    if st.button("Generate Sleep Recovery Strategy 🌙"):
+        with st.spinner("Formulating sleep optimization protocol..."):
+            prompt = f"Provide a sleep hygiene and circadian optimization plan for a person sleeping {avg_hours} hours nightly, with '{quality}' quality, experiencing '{main_issue}'."
             res = ask_ai(prompt)
             if res:
                 st.session_state.sleep_result = res
 
     if st.session_state.sleep_result:
         show_result(st.session_state.sleep_result)
-        pdf_download("Sleep Analysis", st.session_state.sleep_result, file_name="Sleep_Analysis.pdf", key="sleep_pdf")
+        pdf_download("Sleep Hygiene Report", st.session_state.sleep_result, file_name="Sleep_Strategy.pdf", key="sleep_pdf")
 
 
 # ---------------------------------------------------------
@@ -949,17 +951,15 @@ elif st.session_state.page == "Sleep & Wellness":
 elif st.session_state.page == "Master Health Summary":
     hero(
         "Master Health Summary",
-        "Consolidated medical record compiling all metrics and analyses generated during your session.",
-        "EXECUTIVE REPORT",
+        "Aggregated report combining all computed health metrics and generated AI assessments.",
+        "EXECUTIVE OVERVIEW",
     )
 
-    summary_text = generate_master_summary()
+    summary = generate_master_summary()
+    show_result(summary)
 
-    st.markdown('<div class="result">', unsafe_allow_html=True)
-    st.markdown(summary_text)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    pdf_download("Master Health Summary Report", summary_text, file_name="Master_Health_Summary.pdf", button_label="📄 Download Full Master PDF Report", key="master_pdf")
+    if st.session_state.bmi or st.session_state.symptom_result or st.session_state.medical_report_result or st.session_state.diet_result:
+        pdf_download("Master Health Summary Report", summary, file_name="Master_Health_Summary.pdf", key="master_pdf")
 
 
 # ---------------------------------------------------------
@@ -968,36 +968,27 @@ elif st.session_state.page == "Master Health Summary":
 elif st.session_state.page == "Settings":
     hero(
         "Application Settings",
-        "Customize theme themes, font scaling, animations, and AI model backends.",
-        "CONFIGURATION",
+        "Customize visual themes, typography scales, animation speeds, and backend AI model defaults.",
+        "SYSTEM PREFERENCES",
     )
 
     with st.container(border=True):
-        st.subheader("🎨 Appearance & Styling")
-        selected_accent = st.selectbox("Color Palette Theme:", list(accent_themes.keys()), index=list(accent_themes.keys()).index(st.session_state.accent))
-        selected_scale = st.selectbox("Typography Scale:", list(font_sizes.keys()), index=list(font_sizes.keys()).index(st.session_state.font_scale))
-
+        st.subheader("🎨 Visual & Aesthetic Controls")
+        
         c1, c2 = st.columns(2)
         with c1:
-            enable_anim = st.toggle("Enable Background Animations", value=st.session_state.enable_animations)
+            st.session_state.accent = st.selectbox("Accent Theme", list(accent_themes.keys()), index=list(accent_themes.keys()).index(st.session_state.accent))
+            st.session_state.font_scale = st.selectbox("Font Scaling", list(font_sizes.keys()), index=list(font_sizes.keys()).index(st.session_state.font_scale))
         with c2:
-            anim_speed = st.selectbox("Animation Cycle Speed:", list(speed_map.keys()), index=list(speed_map.keys()).index(st.session_state.anim_speed))
+            st.session_state.enable_animations = st.toggle("Enable Background Animations", value=st.session_state.enable_animations)
+            st.session_state.anim_speed = st.selectbox("Animation Speed", list(speed_map.keys()), index=list(speed_map.keys()).index(st.session_state.anim_speed))
 
-    st.write("")
+        st.subheader("⚙️ AI Model Configuration")
+        st.session_state.ai_model = st.selectbox("Default AI Execution Model", VALID_MODELS, index=VALID_MODELS.index(st.session_state.ai_model))
 
-    with st.container(border=True):
-        st.subheader("⚙️ AI Engine Configuration")
-        model_index = VALID_MODELS.index(st.session_state.ai_model) if st.session_state.ai_model in VALID_MODELS else 0
-        selected_model = st.selectbox("Preferred Gemini Model:", VALID_MODELS, index=model_index)
-
-    if st.button("Save Settings 💾", type="primary"):
-        st.session_state.accent = selected_accent
-        st.session_state.font_scale = selected_scale
-        st.session_state.enable_animations = enable_anim
-        st.session_state.anim_speed = anim_speed
-        st.session_state.ai_model = selected_model
-        st.success("Settings saved successfully!")
-        st.rerun()
+        if st.button("Save & Apply Settings 💾"):
+            st.success("Settings saved successfully!")
+            st.rerun()
 
 
 # =========================================================
@@ -1006,8 +997,7 @@ elif st.session_state.page == "Settings":
 st.markdown(
     """
     <div class="footer">
-        HealthMate AI • Educational & Triage Platform<br>
-        <i>Disclaimer: This application is for educational purposes only and does not replace professional medical evaluation or diagnosis.</i>
+        HealthMate AI • Educational Clinical Assistant • Medical Disclaimer: Always consult qualified healthcare professionals for medical advice.
     </div>
     """,
     unsafe_allow_html=True,
