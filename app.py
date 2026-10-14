@@ -39,7 +39,7 @@ for key, default_value in session_defaults.items():
 
 
 # =========================================================
-# GEMINI CLIENT & RETRY HANDLER
+# GEMINI CLIENT & RETRY HANDLER (Enhanced for High Demand)
 # =========================================================
 def get_client():
     """Fetches a fresh client using the latest API key in secrets."""
@@ -52,8 +52,8 @@ def get_client():
     return None
 
 
-def ask_ai(prompt, model="gemini-3.8-flash", max_retries=3):
-    """Reusable Gemini API call function with automatic retry for 429 rate limits and 503 high demand errors."""
+def ask_ai(prompt, model="gemini-3.8-flash", max_retries=5):
+    """Reusable Gemini API call function with robust backoff for high traffic spikes."""
     client = get_client()
     if client is None:
         st.error(
@@ -73,12 +73,13 @@ def ask_ai(prompt, model="gemini-3.8-flash", max_retries=3):
             err_msg = str(exc)
             if any(code in err_msg for code in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
                 if attempt < max_retries - 1:
-                    time.sleep(3 * (attempt + 1))  # Progressive backoff: 3s, then 6s
+                    sleep_time = 4 * (attempt + 1)  # 4s, 8s, 12s, 16s backoff
+                    time.sleep(sleep_time)
                     continue
                 else:
                     st.warning(
-                        "⏳ High Demand / Rate Limit Reached: The AI service is currently experiencing heavy traffic. "
-                        "Please wait a moment and click your button or try again."
+                        "⏳ High Demand / Rate Limit Reached: The AI servers are handling heavy traffic right now. "
+                        "The app tried multiple times automatically—please wait a minute and try clicking your button again."
                     )
                     return None
             else:
