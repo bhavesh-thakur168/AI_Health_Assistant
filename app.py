@@ -53,7 +53,7 @@ def get_client():
 
 
 def ask_ai(prompt, model="gemini-3.8-flash", max_retries=3):
-    """Reusable Gemini API call function with dynamic client retrieval and rate-limit retries."""
+    """Reusable Gemini API call function with automatic retry for 429 rate limits and 503 high demand errors."""
     client = get_client()
     if client is None:
         st.error(
@@ -71,14 +71,14 @@ def ask_ai(prompt, model="gemini-3.8-flash", max_retries=3):
             return response.text
         except Exception as exc:
             err_msg = str(exc)
-            if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+            if any(code in err_msg for code in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
                 if attempt < max_retries - 1:
-                    time.sleep(2 * (attempt + 1))  # Wait 2s, then 4s before retrying
+                    time.sleep(3 * (attempt + 1))  # Progressive backoff: 3s, then 6s
                     continue
                 else:
                     st.warning(
-                        "⏳ Rate Limit Reached (429): Google limits requests per minute for free tier API keys. "
-                        "Please wait ~60 seconds and try again."
+                        "⏳ High Demand / Rate Limit Reached: The AI service is currently experiencing heavy traffic. "
+                        "Please wait a moment and click your button or try again."
                     )
                     return None
             else:
@@ -1211,8 +1211,8 @@ elif page == "Medical Report Analyzer":
                                 key="pdf_report",
                             )
                     except Exception as exc:
-                        if "429" in str(exc) or "RESOURCE_EXHAUSTED" in str(exc):
-                            st.warning("⏳ Free Tier Quota Exceeded (429): Please wait ~60 seconds before retrying.")
+                        if any(code in str(exc) for code in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
+                            st.warning("⏳ Server High Demand / Quota Exceeded: Please wait a moment before retrying.")
                         else:
                             st.error(f"Analysis failed: {exc}")
 
