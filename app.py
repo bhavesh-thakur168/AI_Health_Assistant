@@ -52,7 +52,7 @@ def get_client():
     return None
 
 
-def ask_ai(prompt, model="gemini-3.6-flash", max_retries=3):
+def ask_ai(prompt, model="gemini-2.5-flash", max_retries=3):
     """Reusable Gemini API call function with dynamic client retrieval and rate-limit retries."""
     client = get_client()
     if client is None:
@@ -605,19 +605,14 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    labels = [f"{page_icons[p]}  {p}" for p in pages]
-    current_label = f"{page_icons[st.session_state.page]}  {st.session_state.page}"
-    current_index = labels.index(current_label) if current_label in labels else 0
-
-    selected_label = st.radio(
+    # Bug fix: use key="page" and format_func for seamless programmatic and sidebar navigation
+    st.radio(
         "Navigation",
-        labels,
-        index=current_index,
+        pages,
+        format_func=lambda p: f"{page_icons[p]}  {p}",
+        key="page",
         label_visibility="collapsed",
     )
-
-    st.session_state.page = selected_label.split("  ", 1)[1]
-
 
 page = st.session_state.page
 
@@ -1196,7 +1191,7 @@ elif page == "Medical Report Analyzer":
                     try:
                         bytes_data = uploaded_file.getvalue()
                         response = client.models.generate_content(
-                            model="gemini-3.6-flash",
+                            model="gemini-2.5-flash",
                             contents=[
                                 types.Part.from_bytes(
                                     data=bytes_data,
