@@ -52,7 +52,7 @@ def get_client():
     return None
 
 
-def ask_ai(prompt, model="gemini-2.5-flash", max_retries=3):
+def ask_ai(prompt, model="gemini-3.8-flash", max_retries=3):
     """Reusable Gemini API call function with dynamic client retrieval and rate-limit retries."""
     client = get_client()
     if client is None:
@@ -605,7 +605,6 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    # Bug fix: use key="page" and format_func for seamless programmatic and sidebar navigation
     st.radio(
         "Navigation",
         pages,
@@ -1191,7 +1190,7 @@ elif page == "Medical Report Analyzer":
                     try:
                         bytes_data = uploaded_file.getvalue()
                         response = client.models.generate_content(
-                            model="gemini-2.5-flash",
+                            model="gemini-3.8-flash",
                             contents=[
                                 types.Part.from_bytes(
                                     data=bytes_data,
