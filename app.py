@@ -39,7 +39,7 @@ for key, default_value in session_defaults.items():
 
 
 # =========================================================
-# GEMINI CLIENT & RETRY HANDLER (Enhanced for High Demand)
+# GEMINI CLIENT & MULTI-MODEL FAILOVER RETRY HANDLER
 # =========================================================
 def get_client():
     """Fetches a fresh client using the latest API key in secrets."""
@@ -52,8 +52,8 @@ def get_client():
     return None
 
 
-def ask_ai(prompt, model="gemini-3.8-flash", max_retries=5):
-    """Reusable Gemini API call function with robust backoff for high traffic spikes."""
+def ask_ai(prompt, max_retries=3):
+    """Reusable Gemini API call function with multi-model fallback and backoff."""
     client = get_client()
     if client is None:
         st.error(
@@ -62,29 +62,35 @@ def ask_ai(prompt, model="gemini-3.8-flash", max_retries=5):
         )
         return None
 
-    for attempt in range(max_retries):
-        try:
-            response = client.models.generate_content(
-                model=model,
-                contents=prompt,
-            )
-            return response.text
-        except Exception as exc:
-            err_msg = str(exc)
-            if any(code in err_msg for code in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
-                if attempt < max_retries - 1:
-                    sleep_time = 4 * (attempt + 1)  # 4s, 8s, 12s, 16s backoff
-                    time.sleep(sleep_time)
-                    continue
+    # List of fallback models to cycle through if high demand errors occur
+    models_to_try = ["gemini-3.8-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+
+    for model in models_to_try:
+        for attempt in range(max_retries):
+            try:
+                response = client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                )
+                if response and response.text:
+                    return response.text
+            except Exception as exc:
+                err_msg = str(exc)
+                if any(code in err_msg for code in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "404", "NOT_FOUND"]):
+                    if attempt < max_retries - 1:
+                        time.sleep(2 * (attempt + 1))
+                        continue
+                    else:
+                        # Move to the next model in the fallback list
+                        break
                 else:
-                    st.warning(
-                        "⏳ High Demand / Rate Limit Reached: The AI servers are handling heavy traffic right now. "
-                        "The app tried multiple times automatically—please wait a minute and try clicking your button again."
-                    )
-                    return None
-            else:
-                st.error(f"Gemini request failed: {exc}")
-                return None
+                    st.error(f"Gemini request failed ({model}): {exc}")
+                    break
+
+    st.warning(
+        "⏳ High Demand / Quota Reached: All fallback AI servers are currently experiencing heavy traffic. "
+        "Please wait ~30 seconds and try clicking your button again."
+    )
     return None
 
 
@@ -1190,18 +1196,27 @@ elif page == "Medical Report Analyzer":
                 with st.spinner("Analyzing report image..."):
                     try:
                         bytes_data = uploaded_file.getvalue()
-                        response = client.models.generate_content(
-                            model="gemini-3.8-flash",
-                            contents=[
-                                types.Part.from_bytes(
-                                    data=bytes_data,
-                                    mime_type=uploaded_file.type,
-                                ),
-                                "Analyze this medical report image for educational purposes. Explain key findings, medical terms, and reference values simply. Do not diagnose.",
-                            ],
-                        )
-                        answer = response.text
-                        if answer:
+                        # Try with fallback models for vision task
+                        response = None
+                        for model_name in ["gemini-3.8-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
+                            try:
+                                response = client.models.generate_content(
+                                    model=model_name,
+                                    contents=[
+                                        types.Part.from_bytes(
+                                            data=bytes_data,
+                                            mime_type=uploaded_file.type,
+                                        ),
+                                        "Analyze this medical report image for educational purposes. Explain key findings, medical terms, and reference values simply. Do not diagnose.",
+                                    ],
+                                )
+                                if response and response.text:
+                                    break
+                            except Exception:
+                                continue
+
+                        if response and response.text:
+                            answer = response.text
                             st.success("Analysis Complete")
                             show_result(answer)
                             pdf_download(
@@ -1211,11 +1226,10 @@ elif page == "Medical Report Analyzer":
                                 button_label="📄 Download Report Analysis",
                                 key="pdf_report",
                             )
-                    except Exception as exc:
-                        if any(code in str(exc) for code in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
-                            st.warning("⏳ Server High Demand / Quota Exceeded: Please wait a moment before retrying.")
                         else:
-                            st.error(f"Analysis failed: {exc}")
+                            st.warning("⏳ All vision servers are currently busy. Please wait a moment and try again.")
+                    except Exception as exc:
+                        st.error(f"Analysis failed: {exc}")
 
 
 # =========================================================
