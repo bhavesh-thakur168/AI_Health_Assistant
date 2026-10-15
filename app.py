@@ -1,6 +1,8 @@
+import json
 import os
 import re
 import time
+from pathlib import Path
 
 import streamlit as st
 from google import genai
@@ -25,28 +27,91 @@ st.set_page_config(
 
 
 # =========================================================
-# SESSION STATE INITIALIZATION
+# SESSION STATE & SAVED PREFERENCES
 # =========================================================
+DEFAULT_SETTINGS = {
+    "model": "Auto (recommended)",
+    "language": "English",
+    "detail": "Standard",
+    "tone": "Friendly",
+    "name": "",
+    "theme": "Dark",
+    "font_size": "Medium",
+    "animations": True,
+    "start_page": "Home",
+}
+
+# Settings are saved next to app.py (fine for local use; on a shared server
+# every visitor would share this one file).
+PREFS_FILE = Path(__file__).with_name("healthmate_settings.json")
+
+
+def load_prefs():
+    try:
+        data = json.loads(PREFS_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def save_prefs():
+    try:
+        PREFS_FILE.write_text(
+            json.dumps(
+                {"accent": st.session_state.accent, "settings": st.session_state.settings},
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        return True
+    except Exception:
+        return False
+
+
+def has_api_key():
+    try:
+        if st.secrets.get("GEMINI_API_KEY"):
+            return True
+    except Exception:
+        pass
+    return bool(os.environ.get("GEMINI_API_KEY"))
+
+
 session_defaults = {
     "page": "Home",
     "chat_history": [],
     "bmi": None,
     "water": None,
     "sleep": None,
-    "accent": "Cyan",
+    "accent": "Teal",
     "results": {},  # saved AI results so they survive reruns (e.g. after a download click)
+    "settings": dict(DEFAULT_SETTINGS),
 }
 
 for key, default_value in session_defaults.items():
     if key not in st.session_state:
         st.session_state[key] = default_value
 
+if "prefs_loaded" not in st.session_state:
+    st.session_state.prefs_loaded = True
+    saved_prefs = load_prefs()
+    if isinstance(saved_prefs.get("settings"), dict):
+        st.session_state.settings = {
+            **DEFAULT_SETTINGS,
+            **{k: v for k, v in saved_prefs["settings"].items() if k in DEFAULT_SETTINGS},
+        }
+    if isinstance(saved_prefs.get("accent"), str):
+        st.session_state.accent = saved_prefs["accent"]
+
+# make sure every settings key exists (older sessions may miss new ones)
+st.session_state.settings = {**DEFAULT_SETTINGS, **st.session_state.settings}
+
 
 # =========================================================
 # GEMINI CLIENT & MULTI-MODEL FAILOVER RETRY HANDLER
 # =========================================================
 # Edit this list if Google renames/retires a model. Order = priority.
-MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"]
+MODELS_TO_TRY = ["gemini-3.5-flash-lite", "gemini-3.5-flash"]
 
 RETRYABLE_ERRORS = ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "500", "INTERNAL", "DEADLINE_EXCEEDED"]
 SKIP_MODEL_ERRORS = ["404", "NOT_FOUND"]
@@ -70,6 +135,48 @@ def get_client():
     return None
 
 
+LANGUAGE_RULES = {
+    "English": "Respond in English.",
+    "Hindi": "Respond in Hindi (Devanagari script).",
+    "Hinglish": "Respond in Hinglish (Hindi written using English letters).",
+}
+DETAIL_RULES = {
+    "Brief": "Keep the answer short and to the point (under about 150 words).",
+    "Standard": "Give a balanced answer with clear sections.",
+    "Detailed": "Give a thorough, well-structured answer with explanations.",
+}
+TONE_RULES = {
+    "Friendly": "Use a warm, friendly, easy-to-understand tone.",
+    "Professional": "Use a formal, professional tone. Explain medical terms simply.",
+    "Simple": "Use very simple words suitable for a school student.",
+}
+AUTO_MODEL = "Auto (recommended)"
+
+
+def apply_style(contents):
+    """Adds the user's chosen language, detail level and tone to the request."""
+    cfg = st.session_state.settings
+    style = (
+        "\n\nResponse style rules: "
+        f"{LANGUAGE_RULES.get(cfg.get('language'), LANGUAGE_RULES['English'])} "
+        f"{DETAIL_RULES.get(cfg.get('detail'), DETAIL_RULES['Standard'])} "
+        f"{TONE_RULES.get(cfg.get('tone'), TONE_RULES['Friendly'])}"
+    )
+    if isinstance(contents, str):
+        return contents + style
+    if isinstance(contents, list):
+        return list(contents) + [style]
+    return contents
+
+
+def model_order():
+    """Preferred model first (if chosen), then the normal fallback list."""
+    preferred = st.session_state.settings.get("model", AUTO_MODEL)
+    if preferred in MODELS_TO_TRY:
+        return [preferred] + [m for m in MODELS_TO_TRY if m != preferred]
+    return list(MODELS_TO_TRY)
+
+
 def ask_ai(contents, max_retries=3):
     """Reusable Gemini call (text or multimodal) with multi-model fallback and backoff."""
     client = get_client()
@@ -80,18 +187,23 @@ def ask_ai(contents, max_retries=3):
         )
         return None
 
-    for model in MODELS_TO_TRY:
+    last_error = "No response received."
+    styled_contents = apply_style(contents)
+
+    for model in model_order():
         for attempt in range(max_retries):
             try:
                 response = client.models.generate_content(
                     model=model,
-                    contents=contents,
+                    contents=styled_contents,
                 )
                 if response and response.text:
                     return response.text
+                last_error = f"{model}: empty response"
                 break  # empty answer (e.g. blocked) -> try next model
             except Exception as exc:
                 err_msg = str(exc)
+                last_error = f"{model}: {err_msg[:300]}"
 
                 if any(code in err_msg for code in FATAL_ERRORS):
                     st.error("Gemini rejected the API key. Please check GEMINI_API_KEY.")
@@ -106,386 +218,293 @@ def ask_ai(contents, max_retries=3):
                         continue
                     break  # retries used up -> next model
 
-                st.error(f"Gemini request failed ({model}): {exc}")
                 break
 
-    st.warning(
-        "⏳ High Demand / Quota Reached: All fallback AI servers are currently experiencing heavy traffic. "
-        "Please wait ~30 seconds and try again."
-    )
+    st.warning("⏳ Could not get a response from Gemini. Last error:")
+    st.code(last_error)
     return None
 
 
 # =========================================================
-# THEME CONFIGURATION (COLOR-ENRICHED PALETTE)
+# THEME CONFIGURATION
 # =========================================================
 accent_colors = {
-    "Cyan": "#00f2fe",
-    "Blue": "#38bdf8",
-    "Purple": "#c084fc",
-    "Green": "#34d399",
+    "Teal": "#0d9488",
+    "Blue": "#2563eb",
+    "Indigo": "#4f46e5",
+    "Emerald": "#059669",
 }
 
-accent = accent_colors.get(st.session_state.accent, "#00f2fe")
+THEMES = {
+    "Dark": {
+        "bg": "#0b1220",
+        "sidebar": "#0f172a",
+        "surface": "#111b2e",
+        "surface2": "#17233b",
+        "text": "#e6edf7",
+        "muted": "#94a3b8",
+        "border": "rgba(148, 163, 184, 0.20)",
+        "shadow": "0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.22)",
+    },
+    "Light": {
+        "bg": "#f4f7fb",
+        "sidebar": "#ffffff",
+        "surface": "#ffffff",
+        "surface2": "#f1f5f9",
+        "text": "#0f172a",
+        "muted": "#64748b",
+        "border": "rgba(15, 23, 42, 0.12)",
+        "shadow": "0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.06)",
+    },
+}
 
-background = "#131b38"
-sidebar_bg = "#111827"
-surface = "rgba(30, 41, 78, 0.72)"
-surface2 = "rgba(45, 62, 115, 0.75)"
-text = "#ffffff"
-muted = "#cbd5e1"
-border = "rgba(255, 255, 255, 0.18)"
-card_shadow = "0 14px 40px 0 rgba(10, 16, 40, 0.45)"
-glass_blur = "blur(20px)"
+FONT_SIZES = {"Small": 14, "Medium": 16, "Large": 18}
+
+
+def hex_to_rgba(hex_color, alpha):
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
+
+
+_cfg = st.session_state.settings
+accent = accent_colors.get(st.session_state.accent, accent_colors["Teal"])
+accent_soft = hex_to_rgba(accent, 0.16)
+palette = THEMES.get(_cfg.get("theme"), THEMES["Dark"])
+base_px = FONT_SIZES.get(_cfg.get("font_size"), 16)
+motion_css = (
+    ""
+    if _cfg.get("animations", True)
+    else "*, *::before, *::after { transition: none !important; animation: none !important; }"
+)
 
 
 # =========================================================
-# STYLESHEET WITH COLORFUL BACKGROUND ANIMATION
+# STYLESHEET (CLEAN, PROFESSIONAL)
 # =========================================================
 st.markdown(
     f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {{
-    --bg: {background};
-    --surface: {surface};
-    --surface2: {surface2};
-    --text: {text};
-    --muted: {muted};
-    --border: {border};
+    --bg: {palette["bg"]};
+    --sidebar: {palette["sidebar"]};
+    --surface: {palette["surface"]};
+    --surface2: {palette["surface2"]};
+    --text: {palette["text"]};
+    --muted: {palette["muted"]};
+    --border: {palette["border"]};
+    --shadow: {palette["shadow"]};
     --accent: {accent};
-    --shadow: {card_shadow};
-    --blur: {glass_blur};
+    --accent-soft: {accent_soft};
 }}
 
 .stApp {{
-    background: linear-gradient(135deg, #131b38 0%, #1e1b4b 28%, #0f2c59 55%, #1e1b4b 78%, #142147 100%);
-    background-size: 300% 300%;
-    animation: auroraWave 14s ease-in-out infinite alternate;
+    background: var(--bg);
     color: var(--text);
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
 }}
 
-@keyframes auroraWave {{
-    0% {{ background-position: 0% 20%; }}
-    50% {{ background-position: 100% 80%; }}
-    100% {{ background-position: 0% 20%; }}
-}}
+[data-testid="stHeader"] {{ background: transparent; }}
+.block-container {{ padding-top: 2rem; max-width: 1200px; }}
 
-.stApp::before {{
-    content: '';
-    position: fixed;
-    top: -150px;
-    left: -150px;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(0, 242, 254, 0.35) 0%, rgba(56, 189, 248, 0.15) 45%, transparent 70%);
-    filter: blur(50px);
-    z-index: 0;
-    pointer-events: none;
-    animation: floatOrbOne 18s ease-in-out infinite alternate;
+.stMarkdown, .stMarkdown p, .stMarkdown li,
+[data-testid="stWidgetLabel"] p, label, [data-testid="stCaptionContainer"] {{
+    color: var(--text);
 }}
-
-.stApp::after {{
-    content: '';
-    position: fixed;
-    bottom: -150px;
-    right: -150px;
-    width: 650px;
-    height: 650px;
-    background: radial-gradient(circle, rgba(192, 132, 252, 0.32) 0%, rgba(236, 72, 153, 0.18) 50%, transparent 70%);
-    filter: blur(55px);
-    z-index: 0;
-    pointer-events: none;
-    animation: floatOrbTwo 16s ease-in-out infinite alternate;
-}}
-
-@keyframes floatOrbOne {{
-    0% {{ transform: translate(0, 0) scale(1); }}
-    50% {{ transform: translate(120px, 90px) scale(1.15); }}
-    100% {{ transform: translate(40px, 140px) scale(0.95); }}
-}}
-
-@keyframes floatOrbTwo {{
-    0% {{ transform: translate(0, 0) scale(1); }}
-    50% {{ transform: translate(-100px, -110px) scale(1.12); }}
-    100% {{ transform: translate(-30px, -160px) scale(0.92); }}
-}}
-
-[data-testid="stSidebar"] {{
-    background: linear-gradient(180deg, rgba(17, 24, 47, 0.92) 0%, rgba(26, 36, 68, 0.94) 100%) !important;
-    backdrop-filter: var(--blur);
-    -webkit-backdrop-filter: var(--blur);
-    border-right: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 6px 0 30px rgba(0, 0, 0, 0.25);
-}}
-
-[data-testid="stSidebar"] div[data-testid="stRadio"] label {{
-    border-radius: 14px;
-    padding: 11px 16px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    border: 1px solid transparent;
-    font-size: 14.5px;
-    font-weight: 500;
-    color: #e2e8f0;
-    margin-bottom: 3px;
-}}
-
-[data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {{
-    background: linear-gradient(90deg, rgba(0, 242, 254, 0.2) 0%, rgba(192, 132, 252, 0.15) 100%);
-    border-color: rgba(0, 242, 254, 0.45);
-    color: #ffffff;
-    transform: translateX(6px);
-}}
+.stMarkdown p, .stMarkdown li {{ font-size: {base_px}px; line-height: 1.65; }}
 
 h1, h2, h3, h4, h5, h6 {{
-    font-family: 'Outfit', sans-serif !important;
+    font-family: 'Inter', sans-serif !important;
     color: var(--text) !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.03em !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
 }}
 
-.hero {{
-    padding: 38px 44px;
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    border-radius: 26px;
-    background: linear-gradient(135deg, rgba(37, 51, 98, 0.88) 0%, rgba(28, 40, 77, 0.85) 50%, rgba(46, 37, 84, 0.82) 100%);
-    backdrop-filter: var(--blur);
-    -webkit-backdrop-filter: var(--blur);
-    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.35);
-    margin-bottom: 28px;
-    position: relative;
-    overflow: hidden;
+/* ---------- Sidebar ---------- */
+[data-testid="stSidebar"] {{
+    background: var(--sidebar) !important;
+    border-right: 1px solid var(--border);
 }}
-
-.hero::before {{
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 6px;
-    height: 100%;
-    background: linear-gradient(180deg, #00f2fe 0%, #c084fc 50%, #34d399 100%);
+[data-testid="stSidebar"] div[data-testid="stRadio"] label {{
+    border-radius: 10px;
+    padding: 9px 12px;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+    transition: background 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
 }}
-
-.hero small {{
-    color: var(--accent);
-    font-family: 'Outfit', sans-serif;
-    font-weight: 800;
-    letter-spacing: 2.5px;
-    text-transform: uppercase;
-    font-size: 11px;
-    background: rgba(0, 242, 254, 0.18);
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 1px solid rgba(0, 242, 254, 0.35);
-    display: inline-block;
+[data-testid="stSidebar"] div[data-testid="stRadio"] label p {{
+    color: var(--text);
+    font-size: 14.5px;
+    font-weight: 500;
 }}
-
-.hero h1 {{
-    margin: 14px 0 10px 0;
-    font-size: clamp(30px, 4vw, 48px);
-    line-height: 1.1;
-    background: linear-gradient(120deg, #ffffff 40%, #00f2fe 75%, #c084fc 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+[data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {{
+    background: var(--surface2);
 }}
-
-.hero p {{
-    color: #e2e8f0;
-    margin: 0;
-    font-size: 16px;
-    line-height: 1.6;
-    max-width: 760px;
-}}
-
-.card {{
-    background: linear-gradient(145deg, rgba(38, 52, 98, 0.85) 0%, rgba(27, 39, 75, 0.8) 100%);
-    backdrop-filter: var(--blur);
-    -webkit-backdrop-filter: var(--blur);
-    border: 1px solid var(--border);
-    border-radius: 22px;
-    padding: 24px;
-    min-height: 140px;
-    box-shadow: var(--shadow);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    position: relative;
-}}
-
-.card:hover {{
-    transform: translateY(-5px);
+[data-testid="stSidebar"] div[data-testid="stRadio"] label:has(input:checked) {{
+    background: var(--accent-soft);
     border-color: var(--accent);
-    box-shadow: 0 16px 36px -6px rgba(0, 242, 254, 0.35);
-    background: linear-gradient(145deg, rgba(46, 62, 116, 0.9) 0%, rgba(32, 45, 87, 0.85) 100%);
 }}
 
-.card .icon {{
-    font-size: 42px !important;
-    line-height: 1;
-    filter: drop-shadow(0 0 12px rgba(0, 242, 254, 0.45));
-    transition: transform 0.3s ease;
+.brand {{ display: flex; align-items: center; gap: 12px; padding: 6px 4px 14px; }}
+.brand-badge {{
+    width: 42px; height: 42px; border-radius: 12px;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
 }}
-
-.card:hover .icon {{
-    transform: scale(1.12);
-}}
-
-.card .label {{
-    color: #cbd5e1;
-    font-size: 11.5px;
-    margin-top: 14px;
-    text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-}}
-
-.card .value {{
-    color: #ffffff;
-    font-family: 'Outfit', sans-serif;
-    font-size: 27px;
-    font-weight: 800;
-    margin-top: 4px;
-    letter-spacing: -0.5px;
-}}
-
-.card .desc {{
-    color: #cbd5e1;
-    font-size: 13px;
-    margin-top: 4px;
-}}
-
-.tool {{
-    background: linear-gradient(145deg, rgba(38, 52, 98, 0.85) 0%, rgba(27, 39, 75, 0.8) 100%);
-    backdrop-filter: var(--blur);
-    -webkit-backdrop-filter: var(--blur);
-    border: 1px solid var(--border);
-    border-radius: 22px 22px 0 0;
-    padding: 24px;
-    min-height: 140px;
-    box-shadow: var(--shadow);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}}
-
-.tool:hover {{
-    border-color: rgba(0, 242, 254, 0.45);
-    background: linear-gradient(145deg, rgba(46, 62, 116, 0.9) 0%, rgba(32, 45, 87, 0.85) 100%);
-}}
-
-.tool-static {{
-    border-radius: 22px !important;
-}}
-
-.tool b {{
-    font-family: 'Outfit', sans-serif;
-    color: #ffffff;
-    font-size: 18.5px;
-    display: block;
-    margin-top: 12px;
-    letter-spacing: -0.3px;
-}}
-
-.tool p {{
-    color: #cbd5e1;
-    font-size: 13.5px;
-    line-height: 1.5;
-    margin-top: 6px;
-    margin-bottom: 0;
-}}
-
-.tool-icon {{
-    font-size: 44px !important;
-    display: inline-block;
-    filter: drop-shadow(0 0 12px rgba(0, 242, 254, 0.45));
-    transition: transform 0.3s ease;
-}}
-
-.tool:hover .tool-icon {{
-    transform: scale(1.12);
-}}
+.brand-title {{ font-weight: 800; font-size: 18px; color: var(--text); line-height: 1.1; }}
+.brand-sub {{ font-size: 11px; color: var(--muted); letter-spacing: 1.2px; font-weight: 600; margin-top: 3px; }}
 
 .status {{
-    display: inline-flex;
-    gap: 8px;
-    align-items: center;
-    color: var(--accent);
-    background: rgba(0, 242, 254, 0.16);
-    border: 1px solid rgba(0, 242, 254, 0.4);
-    padding: 6px 14px;
-    border-radius: 30px;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    box-shadow: 0 0 14px rgba(0, 242, 254, 0.25);
+    display: inline-flex; gap: 8px; align-items: center;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 5px 12px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600;
 }}
+.dot {{ width: 8px; height: 8px; border-radius: 50%; background: var(--pill, var(--accent)); }}
 
-.dot {{
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 10px var(--accent);
-    animation: pulseGlow 1.8s infinite;
-}}
-
-@keyframes pulseGlow {{
-    0% {{ transform: scale(0.9); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.7); }}
-    70% {{ transform: scale(1.15); box-shadow: 0 0 0 7px rgba(0, 242, 254, 0); }}
-    100% {{ transform: scale(0.9); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0); }}
-}}
-
-/* AI result box: styles the bordered container used by show_result() */
-div[data-testid="stVerticalBlockBorderWrapper"] {{
-    background: linear-gradient(135deg, rgba(34, 48, 92, 0.9) 0%, rgba(42, 58, 108, 0.85) 100%);
-    border: 1px solid var(--border) !important;
-    border-left: 5px solid var(--accent) !important;
-    border-radius: 20px !important;
-    padding: 12px 16px;
+/* ---------- Hero ---------- */
+.hero {{
+    padding: 28px 32px;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 16px;
+    background: var(--surface);
     box-shadow: var(--shadow);
-    line-height: 1.7;
+    margin-bottom: 24px;
+}}
+.hero small {{
+    color: var(--accent); font-weight: 700; letter-spacing: 1.6px;
+    text-transform: uppercase; font-size: 11px;
+}}
+.hero h1 {{ margin: 8px 0 6px 0; font-size: clamp(26px, 3vw, 36px); line-height: 1.15; }}
+div.hero p {{ color: var(--muted); margin: 0; font-size: 15.5px; line-height: 1.6; max-width: 760px; }}
+
+/* ---------- Cards ---------- */
+.card {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    min-height: 140px;
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}}
+.card:hover {{ border-color: var(--accent); transform: translateY(-2px); }}
+
+.card .icon, .tool-icon {{
+    width: 46px; height: 46px; border-radius: 12px;
+    background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px !important; line-height: 1;
+}}
+.card .label {{
+    color: var(--muted); font-size: 11.5px; margin-top: 14px;
+    text-transform: uppercase; font-weight: 700; letter-spacing: 1.2px;
+}}
+.card .value {{ color: var(--text); font-size: 26px; font-weight: 800; margin-top: 4px; letter-spacing: -0.5px; }}
+.card .desc {{ color: var(--muted); font-size: 13px; margin-top: 4px; }}
+
+.tool {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px 14px 0 0;
+    padding: 22px;
+    min-height: 140px;
+    box-shadow: var(--shadow);
+    transition: border-color 0.2s ease;
+}}
+.tool:hover {{ border-color: var(--accent); }}
+.tool-static {{ border-radius: 14px !important; }}
+.tool b {{ color: var(--text); font-size: 17px; display: block; margin-top: 12px; font-weight: 700; }}
+div.tool p {{ color: var(--muted); font-size: 13.5px; line-height: 1.5; margin: 6px 0 0 0; }}
+
+/* ---------- AI result box ---------- */
+div[class*="st-key-result_box"] {{
+    background: var(--surface);
+    border: 1px solid var(--border) !important;
+    border-left: 4px solid var(--accent) !important;
+    border-radius: 14px !important;
+    padding: 12px 18px;
+    box-shadow: var(--shadow);
 }}
 
-.stButton > button, div[data-testid="stDownloadButton"] > button {{
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: linear-gradient(135deg, rgba(46, 62, 116, 0.95) 0%, rgba(34, 48, 92, 0.95) 100%);
+/* ---------- Buttons ---------- */
+.stButton > button, div[data-testid="stDownloadButton"] > button,
+[data-testid="stFormSubmitButton"] > button {{
+    border-radius: 10px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
     color: #ffffff;
     font-weight: 600;
-    padding: 11px 22px;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 10px 20px;
     width: 100%;
+    transition: filter 0.2s ease, transform 0.2s ease;
 }}
-
-.stButton > button:hover, div[data-testid="stDownloadButton"] > button:hover {{
+.stButton > button p, div[data-testid="stDownloadButton"] > button p,
+[data-testid="stFormSubmitButton"] > button p {{ color: #ffffff !important; }}
+.stButton > button:hover, div[data-testid="stDownloadButton"] > button:hover,
+[data-testid="stFormSubmitButton"] > button:hover {{
+    filter: brightness(1.1);
     border-color: var(--accent);
-    color: var(--accent);
-    background: linear-gradient(135deg, rgba(58, 78, 142, 1) 0%, rgba(42, 60, 114, 1) 100%);
-    box-shadow: 0 6px 20px rgba(0, 242, 254, 0.35);
-    transform: translateY(-2px);
+    color: #ffffff;
 }}
 
-div[data-testid="stColumn"] .stButton > button {{
-    border-top-left-radius: 0px;
-    border-top-right-radius: 0px;
-    border-bottom-left-radius: 20px;
-    border-bottom-right-radius: 20px;
+/* "Open ..." buttons under the Home tool cards */
+div[class*="st-key-nav_btn_"] button {{
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
     margin-top: -1px;
+    font-weight: 500;
 }}
+div[class*="st-key-nav_btn_"] button p {{ color: var(--text) !important; }}
+div[class*="st-key-nav_btn_"] button:hover {{ border-color: var(--accent); filter: none; background: var(--accent-soft); }}
+
+/* ---------- Inputs ---------- */
+[data-baseweb="input"], [data-baseweb="base-input"], [data-baseweb="textarea"],
+[data-baseweb="select"] > div {{
+    background-color: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+    border-radius: 10px !important;
+}}
+input, textarea {{ color: var(--text) !important; -webkit-text-fill-color: var(--text) !important; }}
+[data-baseweb="select"] * {{ color: var(--text) !important; }}
+[data-baseweb="popover"] ul, [data-baseweb="menu"] {{ background: var(--surface) !important; }}
+[data-baseweb="popover"] li, [role="option"] {{ color: var(--text) !important; }}
+[data-testid="stNumberInput"] button {{ background: var(--surface2) !important; color: var(--text) !important; }}
+
+[data-testid="stForm"] {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+}}
+
+button[data-baseweb="tab"] {{ color: var(--muted); }}
+button[data-baseweb="tab"][aria-selected="true"] {{ color: var(--accent) !important; }}
+[data-baseweb="tab-highlight"] {{ background: var(--accent) !important; }}
+
+[data-testid="stChatMessage"] {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}}
+[data-testid="stBottom"], [data-testid="stBottom"] > div {{ background: var(--bg) !important; }}
+[data-testid="stAlert"] {{ border-radius: 12px; }}
 
 .footer {{
-    text-align: center;
-    color: #cbd5e1;
-    font-size: 13px;
-    padding: 36px 0 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-    margin-top: 50px;
-    line-height: 1.7;
+    text-align: center; color: var(--muted); font-size: 13px;
+    padding: 32px 0 16px; border-top: 1px solid var(--border);
+    margin-top: 48px; line-height: 1.7;
 }}
+
+{motion_css}
 </style>
 """,
     unsafe_allow_html=True,
@@ -551,7 +570,11 @@ def tool(icon, title, description, target_page=None):
 
 
 def show_result(text):
-    with st.container(border=True):
+    try:
+        box = st.container(border=True, key="result_box")
+    except TypeError:  # older Streamlit without container keys
+        box = st.container(border=True)
+    with box:
         st.markdown(text)
 
 
@@ -648,23 +671,28 @@ page_icons = {
     "About": "ℹ️",
 }
 
+# open the page chosen as "start page" once per session
+if "start_applied" not in st.session_state:
+    st.session_state.start_applied = True
+    _start = st.session_state.settings.get("start_page")
+    if _start in pages:
+        st.session_state.page = _start
+
 with st.sidebar:
+    _ok = has_api_key()
+    _pill = "#10b981" if _ok else "#f59e0b"
+    _label = "AI connected" if _ok else "API key missing"
     st.markdown(
         f"""
-        <div style="text-align:center; padding:14px 0 20px;">
-            <div style="font-size:50px; line-height:1; filter: drop-shadow(0 0 14px rgba(0,242,254,0.55));">🩺</div>
-            <div style="font-family:'Outfit'; font-size:24px; font-weight:800; color:{accent}; margin-top:8px; letter-spacing:-0.5px;">
-                HealthMate AI
+        <div class="brand">
+            <div class="brand-badge">🩺</div>
+            <div>
+                <div class="brand-title">HealthMate AI</div>
+                <div class="brand-sub">HEALTH INTELLIGENCE</div>
             </div>
-            <div style="font-size:10px; color:{muted}; letter-spacing:2px; margin-top:2px; font-weight:700;">
-                HEALTH INTELLIGENCE
-            </div>
-            <div style="margin-top:14px;">
-                <span class="status">
-                    <span class="dot"></span>
-                    SYSTEM ONLINE
-                </span>
-            </div>
+        </div>
+        <div style="padding: 0 4px 14px;">
+            <span class="status" style="--pill:{_pill};"><span class="dot"></span>{_label}</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -690,6 +718,10 @@ if page == "Home":
         "Your intelligent health companion for general wellness, calculations, planning, and AI-powered educational assistance.",
         "AI HEALTH PLATFORM",
     )
+
+    user_name = st.session_state.settings.get("name", "").strip()
+    if user_name:
+        st.markdown(f"### 👋 Welcome, {user_name}")
 
     st.markdown("### Explore HealthMate Features")
 
@@ -1359,16 +1391,165 @@ elif page == "Settings":
         "PREFERENCES",
     )
 
-    selected_accent = st.selectbox(
-        "Accent Color Theme",
-        list(accent_colors.keys()),
-        index=list(accent_colors.keys()).index(st.session_state.accent),
-    )
+    cfg = st.session_state.settings
 
-    if st.button("Save Settings"):
-        st.session_state.accent = selected_accent
-        st.success("Settings updated successfully!")
+    def pick_index(options, value):
+        return options.index(value) if value in options else 0
+
+    with st.form("settings_form"):
+        tab_look, tab_ai, tab_profile = st.tabs(
+            ["🎨 Appearance", "🤖 AI Preferences", "👤 Profile & Startup"]
+        )
+
+        with tab_look:
+            l1, l2 = st.columns(2)
+            with l1:
+                theme_options = list(THEMES.keys())
+                new_theme = st.selectbox(
+                    "Theme Mode",
+                    theme_options,
+                    index=pick_index(theme_options, cfg.get("theme")),
+                )
+                accent_options = list(accent_colors.keys())
+                new_accent = st.selectbox(
+                    "Accent Color",
+                    accent_options,
+                    index=pick_index(accent_options, st.session_state.accent),
+                )
+            with l2:
+                size_options = list(FONT_SIZES.keys())
+                new_font = st.selectbox(
+                    "Text Size",
+                    size_options,
+                    index=pick_index(size_options, cfg.get("font_size")),
+                )
+                new_anim = st.toggle(
+                    "Smooth animations",
+                    value=bool(cfg.get("animations", True)),
+                    help="Turn off for a static, faster-feeling interface.",
+                )
+
+        with tab_ai:
+            a1, a2 = st.columns(2)
+            with a1:
+                model_options = [AUTO_MODEL] + MODELS_TO_TRY
+                new_model = st.selectbox(
+                    "AI Model",
+                    model_options,
+                    index=pick_index(model_options, cfg.get("model")),
+                    help="Auto tries the models in order and uses the first that works.",
+                )
+                lang_options = list(LANGUAGE_RULES.keys())
+                new_language = st.selectbox(
+                    "Response Language",
+                    lang_options,
+                    index=pick_index(lang_options, cfg.get("language")),
+                )
+            with a2:
+                detail_options = list(DETAIL_RULES.keys())
+                new_detail = st.selectbox(
+                    "Answer Detail Level",
+                    detail_options,
+                    index=pick_index(detail_options, cfg.get("detail")),
+                )
+                tone_options = list(TONE_RULES.keys())
+                new_tone = st.selectbox(
+                    "Tone of Voice",
+                    tone_options,
+                    index=pick_index(tone_options, cfg.get("tone")),
+                )
+
+        with tab_profile:
+            p1, p2 = st.columns(2)
+            with p1:
+                new_name = st.text_input(
+                    "Your Name (optional)",
+                    value=cfg.get("name", ""),
+                    max_chars=40,
+                    help="Shown as a welcome message on the Home page.",
+                )
+            with p2:
+                new_start = st.selectbox(
+                    "Start Page",
+                    pages,
+                    index=pick_index(pages, cfg.get("start_page")),
+                    help="The page that opens when you start the app.",
+                )
+
+        saved = st.form_submit_button("💾 Save Settings")
+
+    if saved:
+        st.session_state.accent = new_accent
+        st.session_state.settings = {
+            "model": new_model,
+            "language": new_language,
+            "detail": new_detail,
+            "tone": new_tone,
+            "name": new_name.strip(),
+            "theme": new_theme,
+            "font_size": new_font,
+            "animations": bool(new_anim),
+            "start_page": new_start,
+        }
+        file_ok = save_prefs()
+        st.toast("Settings saved ✅" if file_ok else "Saved for this session only")
         st.rerun()
+
+    st.markdown("### System Overview")
+    k1, k2, k3 = st.columns(3)
+    with k1:
+        card(
+            "🔑",
+            "API Key",
+            "Connected" if has_api_key() else "Missing",
+            "From secrets.toml or environment",
+        )
+    with k2:
+        card("🧠", "Active Model", model_order()[0], "First model tried")
+    with k3:
+        card(
+            "🌐",
+            "Response Style",
+            cfg.get("language", "English"),
+            f"{cfg.get('detail', 'Standard')} · {cfg.get('tone', 'Friendly')}",
+        )
+
+    st.markdown("### Tools & Data")
+    t1, t2 = st.columns(2)
+    with t1:
+        if st.button("🔌 Test AI Connection"):
+            with st.spinner("Testing connection..."):
+                test_answer = ask_ai("Reply with the single word: OK")
+            if test_answer:
+                st.success("AI connection is working ✅")
+    with t2:
+        st.download_button(
+            "⬇️ Export Settings (JSON)",
+            data=json.dumps(
+                {"accent": st.session_state.accent, "settings": st.session_state.settings},
+                indent=2,
+            ),
+            file_name="healthmate_settings.json",
+            mime="application/json",
+            key="export_settings",
+        )
+
+    d1, d2, d3 = st.columns(3)
+    with d1:
+        if st.button("🧹 Clear Chat History"):
+            st.session_state.chat_history = []
+            st.success("Chat history cleared.")
+    with d2:
+        if st.button("🗑️ Clear Saved Results"):
+            st.session_state.results = {}
+            st.success("Saved results cleared.")
+    with d3:
+        if st.button("♻️ Reset All Settings"):
+            st.session_state.accent = "Teal"
+            st.session_state.settings = dict(DEFAULT_SETTINGS)
+            save_prefs()
+            st.toast("Settings reset ♻️")
+            st.rerun()
 
 
 # =========================================================
