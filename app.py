@@ -1,4 +1,7 @@
+import os
+import re
 import time
+
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -11,7 +14,7 @@ except Exception:
 
 
 # =========================================================
-# PAGE CONFIGURATION
+# PAGE CONFIGURATION (must be the first Streamlit call)
 # =========================================================
 st.set_page_config(
     page_title="HealthMate AI",
@@ -31,6 +34,7 @@ session_defaults = {
     "water": None,
     "sleep": None,
     "accent": "Cyan",
+    "results": {},  # saved AI results so they survive reruns (e.g. after a download click)
 }
 
 for key, default_value in session_defaults.items():
@@ -41,19 +45,33 @@ for key, default_value in session_defaults.items():
 # =========================================================
 # GEMINI CLIENT & MULTI-MODEL FAILOVER RETRY HANDLER
 # =========================================================
+# Edit this list if Google renames/retires a model. Order = priority.
+MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"]
+
+RETRYABLE_ERRORS = ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "500", "INTERNAL", "DEADLINE_EXCEEDED"]
+SKIP_MODEL_ERRORS = ["404", "NOT_FOUND"]
+FATAL_ERRORS = ["API_KEY_INVALID", "API key not valid", "PERMISSION_DENIED", "UNAUTHENTICATED"]
+
+
 def get_client():
-    """Fetches a fresh client using the latest API key in secrets."""
+    """Fetches a client using the API key from Streamlit secrets or environment."""
+    key = None
     try:
         key = st.secrets.get("GEMINI_API_KEY")
-        if key:
-            return genai.Client(api_key=key)
     except Exception:
-        pass
+        key = None
+    if not key:
+        key = os.environ.get("GEMINI_API_KEY")
+    if key:
+        try:
+            return genai.Client(api_key=key)
+        except Exception:
+            return None
     return None
 
 
-def ask_ai(prompt, max_retries=3):
-    """Reusable Gemini API call function with multi-model fallback and backoff."""
+def ask_ai(contents, max_retries=3):
+    """Reusable Gemini call (text or multimodal) with multi-model fallback and backoff."""
     client = get_client()
     if client is None:
         st.error(
@@ -62,34 +80,38 @@ def ask_ai(prompt, max_retries=3):
         )
         return None
 
-    # List of fallback models to cycle through if high demand errors occur
-    models_to_try = ["gemini-3.8-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
-
-    for model in models_to_try:
+    for model in MODELS_TO_TRY:
         for attempt in range(max_retries):
             try:
                 response = client.models.generate_content(
                     model=model,
-                    contents=prompt,
+                    contents=contents,
                 )
                 if response and response.text:
                     return response.text
+                break  # empty answer (e.g. blocked) -> try next model
             except Exception as exc:
                 err_msg = str(exc)
-                if any(code in err_msg for code in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "404", "NOT_FOUND"]):
+
+                if any(code in err_msg for code in FATAL_ERRORS):
+                    st.error("Gemini rejected the API key. Please check GEMINI_API_KEY.")
+                    return None
+
+                if any(code in err_msg for code in SKIP_MODEL_ERRORS):
+                    break  # model doesn't exist -> next model immediately
+
+                if any(code in err_msg for code in RETRYABLE_ERRORS):
                     if attempt < max_retries - 1:
                         time.sleep(2 * (attempt + 1))
                         continue
-                    else:
-                        # Move to the next model in the fallback list
-                        break
-                else:
-                    st.error(f"Gemini request failed ({model}): {exc}")
-                    break
+                    break  # retries used up -> next model
+
+                st.error(f"Gemini request failed ({model}): {exc}")
+                break
 
     st.warning(
         "⏳ High Demand / Quota Reached: All fallback AI servers are currently experiencing heavy traffic. "
-        "Please wait ~30 seconds and try clicking your button again."
+        "Please wait ~30 seconds and try again."
     )
     return None
 
@@ -268,6 +290,7 @@ h1, h2, h3, h4, h5, h6 {{
     line-height: 1.1;
     background: linear-gradient(120deg, #ffffff 40%, #00f2fe 75%, #c084fc 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }}
 
@@ -416,18 +439,15 @@ h1, h2, h3, h4, h5, h6 {{
     100% {{ transform: scale(0.9); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0); }}
 }}
 
-.result {{
+/* AI result box: styles the bordered container used by show_result() */
+div[data-testid="stVerticalBlockBorderWrapper"] {{
     background: linear-gradient(135deg, rgba(34, 48, 92, 0.9) 0%, rgba(42, 58, 108, 0.85) 100%);
-    backdrop-filter: var(--blur);
-    -webkit-backdrop-filter: var(--blur);
-    border: 1px solid var(--border);
-    border-left: 5px solid var(--accent);
-    border-radius: 20px;
-    padding: 24px;
+    border: 1px solid var(--border) !important;
+    border-left: 5px solid var(--accent) !important;
+    border-radius: 20px !important;
+    padding: 12px 16px;
     box-shadow: var(--shadow);
-    margin-top: 20px;
     line-height: 1.7;
-    color: #ffffff;
 }}
 
 .stButton > button, div[data-testid="stDownloadButton"] > button {{
@@ -502,6 +522,12 @@ def card(icon, label, value, desc=""):
     )
 
 
+def go_to_page(target_page):
+    """Button callback. Callbacks run BEFORE widgets are re-created, so it is
+    allowed to change the value of the 'page' radio widget here."""
+    st.session_state.page = target_page
+
+
 def tool(icon, title, description, target_page=None):
     extra_class = "" if target_page else "tool-static"
     st.markdown(
@@ -515,19 +541,23 @@ def tool(icon, title, description, target_page=None):
         unsafe_allow_html=True,
     )
     if target_page:
-        if st.button(
+        st.button(
             f"Open {title}",
             key=f"nav_btn_{target_page}",
             use_container_width=True,
-        ):
-            st.session_state.page = target_page
-            st.rerun()
+            on_click=go_to_page,
+            args=(target_page,),
+        )
 
 
 def show_result(text):
-    st.markdown('<div class="result">', unsafe_allow_html=True)
-    st.markdown(text)
-    st.markdown("</div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown(text)
+
+
+def safe_filename(name, default="report"):
+    cleaned = re.sub(r"[^A-Za-z0-9_-]+", "_", str(name)).strip("_")
+    return cleaned[:60] or default
 
 
 def pdf_download(heading_or_input, answer, file_name="Health_Report.pdf", button_label="📄 Download Health Report", key=None):
@@ -551,6 +581,34 @@ def pdf_download(heading_or_input, answer, file_name="Health_Report.pdf", button
         )
     except Exception as exc:
         st.error(f"PDF creation failed: {exc}")
+
+
+def save_result(result_key, heading, answer, file_name, button_label, success_text=None):
+    """Keep the AI answer in session state so it is still shown after a rerun
+    (clicking a download button reruns the script)."""
+    st.session_state.results[result_key] = {
+        "heading": heading,
+        "answer": answer,
+        "file_name": file_name,
+        "button_label": button_label,
+        "success_text": success_text,
+    }
+
+
+def render_saved_result(result_key):
+    data = st.session_state.results.get(result_key)
+    if not data:
+        return
+    if data.get("success_text"):
+        st.success(data["success_text"])
+    show_result(data["answer"])
+    pdf_download(
+        data["heading"],
+        data["answer"],
+        file_name=data["file_name"],
+        button_label=data["button_label"],
+        key=f"pdf_{result_key}",
+    )
 
 
 # =========================================================
@@ -633,7 +691,7 @@ if page == "Home":
         "AI HEALTH PLATFORM",
     )
 
-    st.markdown("### Explore HealthMate Features", unsafe_allow_html=True)
+    st.markdown("### Explore HealthMate Features")
 
     r1 = st.columns(3)
     with r1[0]:
@@ -728,7 +786,7 @@ if page == "Home":
 
     st.markdown("<br><br>", unsafe_allow_html=True)
 
-    st.markdown("### System Status", unsafe_allow_html=True)
+    st.markdown("### System Status")
     c1, c2 = st.columns(2)
     with c1:
         card("🛠️", "Tools", "12+", "Health utilities")
@@ -756,13 +814,9 @@ elif page == "AI Symptom Checker":
     )
 
     if symptoms:
-        with st.chat_message("user"):
-            st.write(symptoms)
-
-        with st.chat_message("assistant"):
-            with st.spinner("Analyzing symptoms..."):
-                answer = ask_ai(
-                    f"""
+        with st.spinner("Analyzing symptoms..."):
+            answer = ask_ai(
+                f"""
 You are HealthMate AI, a general health education assistant.
 
 User symptoms:
@@ -774,21 +828,35 @@ Do not prescribe medication.
 Mention important warning signs and when professional medical care may be needed.
 Keep the language simple.
 """
-                )
+            )
+        if answer:
+            save_result(
+                "symptoms",
+                symptoms,
+                answer,
+                "Symptom_Report.pdf",
+                "📄 Download Symptom Report",
+            )
+            st.session_state.results["symptoms"]["user_text"] = symptoms
 
-            if answer:
-                st.write(answer)
-                pdf_download(
-                    symptoms,
-                    answer,
-                    file_name="Symptom_Report.pdf",
-                    button_label="📄 Download Symptom Report",
-                    key="pdf_symptoms",
-                )
+    saved = st.session_state.results.get("symptoms")
+    if saved:
+        with st.chat_message("user"):
+            st.write(saved.get("user_text", saved["heading"]))
+        with st.chat_message("assistant"):
+            st.write(saved["answer"])
+            pdf_download(
+                saved["heading"],
+                saved["answer"],
+                file_name=saved["file_name"],
+                button_label=saved["button_label"],
+                key="pdf_symptoms",
+            )
 
-        st.info(
-            "ℹ️ This response is educational and should not be treated as a medical diagnosis."
-        )
+    st.info(
+        "ℹ️ This response is educational and should not be treated as a medical diagnosis. "
+        "If you have severe symptoms, chest pain, difficulty breathing, or an emergency, seek immediate medical care."
+    )
 
 
 # =========================================================
@@ -829,17 +897,17 @@ Do not personalize treatment.
                 )
 
             if answer:
-                st.success("Information ready")
-                show_result(answer)
-                pdf_download(
+                save_result(
+                    "medicine",
                     f"Medicine Information: {medicine}",
                     answer,
-                    file_name=f"Medicine_Info_{medicine}.pdf",
-                    button_label="📄 Download Medicine Guide",
-                    key="pdf_med",
+                    f"Medicine_Info_{safe_filename(medicine, 'medicine')}.pdf",
+                    "📄 Download Medicine Guide",
+                    "Information ready",
                 )
 
-            st.info("ℹ️ Consult a qualified healthcare professional before taking medicines.")
+    render_saved_result("medicine")
+    st.info("ℹ️ Consult a qualified healthcare professional before taking medicines.")
 
 
 # =========================================================
@@ -992,15 +1060,16 @@ Do not provide medical treatment.
             )
 
         if answer:
-            st.success("Diet plan ready")
-            show_result(answer)
-            pdf_download(
+            save_result(
+                "diet",
                 f"Diet Plan ({goal} | Age: {age}, Gender: {gender})",
                 answer,
-                file_name=f"Diet_Plan_{goal.replace(' ', '_')}.pdf",
-                button_label="📄 Download Diet Plan",
-                key="pdf_diet",
+                f"Diet_Plan_{safe_filename(goal)}.pdf",
+                "📄 Download Diet Plan",
+                "Diet plan ready",
             )
+
+    render_saved_result("diet")
 
 
 # =========================================================
@@ -1048,15 +1117,16 @@ Keep it simple and suitable for students.
             )
 
         if answer:
-            st.success("Exercise plan ready")
-            show_result(answer)
-            pdf_download(
+            save_result(
+                "exercise",
                 f"Exercise Plan ({fitness} | {goal} | Age: {age})",
                 answer,
-                file_name=f"Exercise_Plan_{goal.replace(' ', '_')}.pdf",
-                button_label="📄 Download Workout Plan",
-                key="pdf_exercise",
+                f"Exercise_Plan_{safe_filename(goal)}.pdf",
+                "📄 Download Workout Plan",
+                "Exercise plan ready",
             )
+
+    render_saved_result("exercise")
 
 
 # =========================================================
@@ -1099,17 +1169,17 @@ Clearly state that the values are estimates.
                 )
 
             if answer:
-                st.success("Estimate ready")
-                show_result(answer)
-                pdf_download(
+                save_result(
+                    "calorie",
                     f"Calorie & Nutrition Breakdown: {food}",
                     answer,
-                    file_name="Calorie_Report.pdf",
-                    button_label="📄 Download Nutrition Breakdown",
-                    key="pdf_calorie",
+                    "Calorie_Report.pdf",
+                    "📄 Download Nutrition Breakdown",
+                    "Estimate ready",
                 )
 
-            st.info("ℹ️ AI calorie estimates may be inaccurate because portion sizes vary.")
+    render_saved_result("calorie")
+    st.info("ℹ️ AI calorie estimates may be inaccurate because portion sizes vary.")
 
 
 # =========================================================
@@ -1132,7 +1202,6 @@ elif page == "Sleep Recommendation":
             12,
             7,
         )
-        st.session_state.sleep = sleep_hours
     with c3:
         lifestyle = st.selectbox(
             "Lifestyle",
@@ -1140,6 +1209,7 @@ elif page == "Sleep Recommendation":
         )
 
     if st.button("😴 Get Sleep Advice"):
+        st.session_state.sleep = sleep_hours
         with st.spinner("Preparing sleep advice..."):
             answer = ask_ai(
                 f"""
@@ -1160,15 +1230,16 @@ Keep the language simple.
             )
 
         if answer:
-            st.success("Sleep advice ready")
-            show_result(answer)
-            pdf_download(
+            save_result(
+                "sleep",
                 f"Sleep Guidance (Age: {age}, Hours: {sleep_hours}, Profile: {lifestyle})",
                 answer,
-                file_name="Sleep_Guidance.pdf",
-                button_label="📄 Download Sleep Guidance",
-                key="pdf_sleep",
+                "Sleep_Guidance.pdf",
+                "📄 Download Sleep Guidance",
+                "Sleep advice ready",
             )
+
+    render_saved_result("sleep")
 
 
 # =========================================================
@@ -1189,47 +1260,32 @@ elif page == "Medical Report Analyzer":
         st.image(uploaded_file, caption="Uploaded Report", use_container_width=True)
 
         if st.button("🔬 Analyze Medical Report"):
-            client = get_client()
-            if client is None:
-                st.error("Gemini API key is not configured.")
-            else:
-                with st.spinner("Analyzing report image..."):
-                    try:
-                        bytes_data = uploaded_file.getvalue()
-                        # Try with fallback models for vision task
-                        response = None
-                        for model_name in ["gemini-3.8-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
-                            try:
-                                response = client.models.generate_content(
-                                    model=model_name,
-                                    contents=[
-                                        types.Part.from_bytes(
-                                            data=bytes_data,
-                                            mime_type=uploaded_file.type,
-                                        ),
-                                        "Analyze this medical report image for educational purposes. Explain key findings, medical terms, and reference values simply. Do not diagnose.",
-                                    ],
-                                )
-                                if response and response.text:
-                                    break
-                            except Exception:
-                                continue
+            with st.spinner("Analyzing report image..."):
+                mime = uploaded_file.type or "image/jpeg"
+                answer = ask_ai(
+                    [
+                        types.Part.from_bytes(
+                            data=uploaded_file.getvalue(),
+                            mime_type=mime,
+                        ),
+                        "Analyze this medical report image for educational purposes. "
+                        "Explain key findings, medical terms, and reference values simply. "
+                        "Do not diagnose.",
+                    ]
+                )
 
-                        if response and response.text:
-                            answer = response.text
-                            st.success("Analysis Complete")
-                            show_result(answer)
-                            pdf_download(
-                                "Medical Report Analysis",
-                                answer,
-                                file_name="Report_Analysis.pdf",
-                                button_label="📄 Download Report Analysis",
-                                key="pdf_report",
-                            )
-                        else:
-                            st.warning("⏳ All vision servers are currently busy. Please wait a moment and try again.")
-                    except Exception as exc:
-                        st.error(f"Analysis failed: {exc}")
+            if answer:
+                save_result(
+                    "report",
+                    "Medical Report Analysis",
+                    answer,
+                    "Report_Analysis.pdf",
+                    "📄 Download Report Analysis",
+                    "Analysis Complete",
+                )
+
+    render_saved_result("report")
+    st.info("ℹ️ This is an educational explanation only. Please discuss your report with your doctor.")
 
 
 # =========================================================
@@ -1276,27 +1332,21 @@ elif page == "AI Command Center":
         "INTERACTIVE CHAT",
     )
 
-    for msg in st.session_state.chat_history:
-        with st.chat_message(msg["role"]):
-            st.write(msg["content"])
-
     user_query = st.chat_input("Ask any health & wellness question...")
 
     if user_query:
         st.session_state.chat_history.append({"role": "user", "content": user_query})
-        with st.chat_message("user"):
-            st.write(user_query)
+        with st.spinner("Thinking..."):
+            resp = ask_ai(
+                f"User prompt: {user_query}\n"
+                "Provide educational health guidance without giving a medical diagnosis or prescription."
+            )
+        if resp:
+            st.session_state.chat_history.append({"role": "assistant", "content": resp})
 
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                resp = ask_ai(
-                    f"User prompt: {user_query}\nProvide educational health guidance without giving a medical diagnosis or prescription."
-                )
-                if resp:
-                    st.write(resp)
-                    st.session_state.chat_history.append(
-                        {"role": "assistant", "content": resp}
-                    )
+    for msg in st.session_state.chat_history:
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
 
 
 # =========================================================
